@@ -24,8 +24,10 @@ Two runtimes, one product:
 - **`apps/ai-engine`** — Python / FastAPI. Stateless AI cognition: interview
   turns, extraction, knowledge construction, and detection. Owns no business
   truth.
-- **`packages/contracts`** — the versioned contract between the two runtimes,
-  generating both TS types and Python models.
+- **`packages/contracts`** — the versioned contract between the two runtimes.
+  Currently holds the **Shared Kernel** (`@oi/contracts`): evidence-first
+  provenance primitives and the one-graph substrate contracts. Type-checks
+  standalone (`npm run typecheck`).
 - **`apps/web`** — Next.js UIs (later).
 
 Read the full design in **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**, the

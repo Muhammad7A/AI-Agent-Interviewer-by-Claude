@@ -640,11 +640,11 @@ internal model never enters `core-api`'s domain.
 
 ## 11. Deliberately deferred (needs a call before build)
 
-1. **Aggregate granularity of the graph.** This skeleton makes each node/edge its
-   own aggregate (graph-wide ops eventually consistent). Confirm before we pick a
-   store. *Recommend per-node/edge aggregate.*
-2. **Where `Engagement` lives.** Placed in Organization here; alternative is a
-   dedicated Engagement context. *Recommend keep in Organization.*
+1. ~~**Aggregate granularity of the graph.**~~ **Ratified (ADR-0006):** each
+   `KnowledgeNode` and `KnowledgeEdge` is its own Aggregate Root; graph-wide
+   operations are eventually consistent.
+2. ~~**Where `Engagement` lives.**~~ **Ratified (ADR-0007):** `Engagement` is an
+   aggregate inside the Organization bounded context.
 3. **Insights read models vs. materialized types.** `PainPointRepository` et al.
    as filtered views over the substrate vs. materialized projections — a
    persistence concern, decided with the store (deferred, behind ports).

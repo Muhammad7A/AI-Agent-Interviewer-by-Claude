@@ -31,7 +31,9 @@ Two runtimes, one product:
 Read the full design in **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**, the
 engine that is the platform's moat in
 **[`docs/ORGANIZATIONAL_INTELLIGENCE_ENGINE.md`](docs/ORGANIZATIONAL_INTELLIGENCE_ENGINE.md)**,
-and the decisions behind them in **[`docs/adr/`](docs/adr/)**.
+the DDD domain skeleton (contexts, aggregates, ports, events) in
+**[`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md)**, and the decisions behind them
+in **[`docs/adr/`](docs/adr/)**.
 
 ## Status
 

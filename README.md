@@ -34,8 +34,9 @@ Read the full design in **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**, the
 engine that is the platform's moat in
 **[`docs/ORGANIZATIONAL_INTELLIGENCE_ENGINE.md`](docs/ORGANIZATIONAL_INTELLIGENCE_ENGINE.md)**,
 the DDD domain skeleton (contexts, aggregates, ports, events) in
-**[`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md)**, and the decisions behind them
-in **[`docs/adr/`](docs/adr/)**.
+**[`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md)**, the cross-context orchestration
+in **[`docs/APPLICATION_LAYER.md`](docs/APPLICATION_LAYER.md)**, and the decisions
+behind them in **[`docs/adr/`](docs/adr/)**.
 
 ## Status
 

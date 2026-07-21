@@ -17,7 +17,9 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@oi/contracts": ["../../packages/contracts/src/index"]
+      "@oi/contracts": ["../../packages/contracts/src/index"],
+      "@oi/knowledge": ["src/modules/knowledge/domain/published-language"],
+      "@oi/transcript": ["src/modules/transcript/domain/published-language"]
     }
   },
   "include": ["src/**/*.ts"]

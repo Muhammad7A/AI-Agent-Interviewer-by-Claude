@@ -3,7 +3,6 @@ import type { Evidence } from '../provenance/evidence';
 import type { Confidence } from '../confidence/confidence';
 import type { ValidationRecord } from '../validation/validation-record';
 import type { Layer } from './layer';
-import type { EdgeType } from './edge-type';
 import type { EdgeAttributes } from './edge-attributes';
 
 /**
@@ -13,7 +12,7 @@ import type { EdgeAttributes } from './edge-attributes';
  * about the world just as a node is, so it carries its own evidence, confidence
  * and validation. Endpoints are referenced **by identity only**
  * (`KnowledgeNodeId`): an edge never contains its nodes — the standard aggregate
- * rule (ADR-0006).
+ * rule (ADR-0006). The predicate is carried by `attributes.edgeType`.
  *
  * Invariants encoded by this contract:
  *  - N1 / G1 evidence-first: `evidence` is non-empty.
@@ -25,7 +24,6 @@ export interface KnowledgeEdge<TAttributes extends EdgeAttributes = EdgeAttribut
   readonly id: KnowledgeEdgeId;
   readonly tenantId: TenantId;
   readonly engagementId: EngagementId;
-  readonly edgeType: EdgeType;
   readonly layers: readonly Layer[];
   readonly sourceId: KnowledgeNodeId;
   readonly targetId: KnowledgeNodeId;

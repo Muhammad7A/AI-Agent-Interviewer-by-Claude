@@ -6,8 +6,8 @@ import type { InvariantCode } from './invariant-code';
  * and tests reference by `code`. This package defines the invariants; it does
  * not enforce them (enforcement is behaviour and lives in the domain contexts).
  */
-export interface InvariantSpec {
-  readonly code: InvariantCode;
+export interface InvariantSpec<TCode extends string = InvariantCode> {
+  readonly code: TCode;
   readonly name: string;
   readonly statement: string;
   /** The contracts this invariant constrains. */

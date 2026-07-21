@@ -288,6 +288,15 @@ Insights authors its nodes into the same store via the shared substrate ports; i
 does **not** run a second graph. That is how "one graph, six lenses" survives
 bounded-context decomposition.
 
+> **Refinement (surfaced while building the Knowledge context, applied to the
+> Shared Kernel):** the node/edge type discriminant is carried by
+> `attributes.nodeType` / `attributes.edgeType` (a single source of truth), and
+> `NodeType`/`EdgeType` are **open string seams** narrowed by each context to a
+> literal union (e.g. Knowledge's `'Department' | 'Workflow' | …`). `NodeAttributes`
+> is generic over that literal, so a context's attribute set is a
+> *self-discriminating* union while still conforming to the one base contract. See
+> ADR-0005 and `@oi/contracts`.
+
 ---
 
 ## 5. Package structure (per context)

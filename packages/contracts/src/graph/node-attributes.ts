@@ -1,11 +1,14 @@
 import type { NodeType } from './node-type';
 
 /**
- * Base marker for type-specific node attributes. Each owning context defines a
- * concrete shape extending this (e.g. a `WorkflowAttributes` in the Knowledge
- * context) and discriminates on `nodeType`. The Shared Kernel fixes only the
- * discriminant, keeping the substrate agnostic to any one layer's payload.
+ * Base for type-specific node attribute payloads, carrying the type discriminant.
+ *
+ * Each owning context defines concrete payloads that extend this with a *literal*
+ * `nodeType` (e.g. `interface WorkflowAttributes extends NodeAttributes<'Workflow'>`),
+ * which makes a context's attribute set a self-discriminating union — a single
+ * source of truth for a node's kind. The Shared Kernel fixes only the discriminant
+ * seam; the payload fields belong to the owning context.
  */
-export interface NodeAttributes {
-  readonly nodeType: NodeType;
+export interface NodeAttributes<TType extends NodeType = NodeType> {
+  readonly nodeType: TType;
 }

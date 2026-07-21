@@ -28,8 +28,10 @@ Two runtimes, one product:
   generating both TS types and Python models.
 - **`apps/web`** — Next.js UIs (later).
 
-Read the full design in **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** and
-the decisions behind it in **[`docs/adr/`](docs/adr/)**.
+Read the full design in **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**, the
+engine that is the platform's moat in
+**[`docs/ORGANIZATIONAL_INTELLIGENCE_ENGINE.md`](docs/ORGANIZATIONAL_INTELLIGENCE_ENGINE.md)**,
+and the decisions behind them in **[`docs/adr/`](docs/adr/)**.
 
 ## Status
 

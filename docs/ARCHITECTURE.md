@@ -99,7 +99,7 @@ application interface or a domain event.
 | **Invitations** | Employee Invitation | Inviting employees into an interview, invite lifecycle & tokens. |
 | **Interview Orchestration** | AI Interview Engine (session side) | Interview session lifecycle. Delegates each _AI turn_ to `ai-engine`; owns session state and turn persistence. |
 | **Transcript** | Transcript Storage | Immutable record of interviews. The canonical evidence store. |
-| **Knowledge** | Organizational Knowledge Base | Persisted org model (entities, workflows, relationships) with evidence links. Read + write side of the knowledge graph. |
+| **Knowledge** | Organizational Knowledge Base | Persisted org model (entities, workflows, relationships) with evidence links. Read + write side of the knowledge graph. See `ORGANIZATIONAL_INTELLIGENCE_ENGINE.md` for the full domain model. |
 | **Insights** | Bottleneck Detection, AI Opportunity Detection (results side) | Persistence and lifecycle of detected findings, incl. consultant validation state. |
 | **Reporting** | Report Generator | Assembles validated insights into consultant deliverables. |
 | **Consultant Workspace** | Consultant Dashboard | Read-optimized APIs/projections for the consultant UI. |

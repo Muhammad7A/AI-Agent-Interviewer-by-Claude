@@ -2,7 +2,13 @@
 
 from .base import Interviewee
 from .human import HumanInterviewee
-from .simulated import LatentTruth, Persona, SimulatedInterviewee, default_persona
+from .simulated import (
+    LatentTruth,
+    Persona,
+    SimulatedInterviewee,
+    default_persona,
+    support_lead_persona,
+)
 
 __all__ = [
     "HumanInterviewee",
@@ -11,4 +17,5 @@ __all__ = [
     "Persona",
     "SimulatedInterviewee",
     "default_persona",
+    "support_lead_persona",
 ]

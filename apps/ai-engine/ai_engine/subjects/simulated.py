@@ -77,6 +77,36 @@ def default_persona(candor: str = "neutral") -> Persona:
     )
 
 
+def support_lead_persona(candor: str = "neutral") -> Persona:
+    """A second persona (different role, different truths) for eval diversity."""
+    return Persona(
+        name="Rae",
+        role="Support Team Lead",
+        candor=candor,
+        background="Leads a 5-person support queue. Protective of the team, wary of blame.",
+        latent_truths=[
+            LatentTruth("sl_t1_runbook", 1, ["process_reality"],
+                        ["actually", "supposed", "runbook"],
+                        "The runbook is out of date, so we actually just go off tribal knowledge instead of what we're supposed to do."),
+            LatentTruth("sl_t2_triage", 2, ["workarounds"],
+                        ["instead", "workaround", "tickets", "routing"],
+                        "I re-triage tickets by hand in a side channel instead of the queue, because the routing rules are wrong."),
+            LatentTruth("sl_t2_escalation", 2, ["bottlenecks"],
+                        ["pile", "waiting", "stall", "escalation"],
+                        "Escalations pile up waiting for engineering to pick them up — that's where everything stalls."),
+            LatentTruth("sl_t2_canned", 2, ["ai_opportunity"],
+                        ["repetitive", "rules-based", "canned", "responses"],
+                        "I hand-write the same canned responses over and over; it's totally repetitive and rules-based."),
+            LatentTruth("sl_t3_vp", 3, ["friction"],
+                        ["decision", "priorities", "override", "made"],
+                        "The VP keeps overriding our priorities — that's the real decision that's made badly."),
+            LatentTruth("sl_t4_sla", 4, ["friction", "wasted_effort"],
+                        ["honest", "differently", "supposed", "sla"],
+                        "Honestly, I do it differently than I'm supposed to — I mark tickets resolved before they really are, to hit the SLA."),
+        ],
+    )
+
+
 class SimulatedInterviewee:
     def __init__(self, persona: Persona, *, llm: LLMClient | None = None, temperature: float = 0.7) -> None:
         self._persona = persona

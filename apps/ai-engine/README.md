@@ -133,3 +133,32 @@ One command runs all four stages and writes each dataset layer to its own file:
 python3 -m ai_engine.cli --simulated --candor open      # auto-sim validation
 python3 -m ai_engine.cli --validate                     # you interview AND validate
 ```
+
+### Evaluation harness (the system's conscience)
+
+The only technical moat is knowing whether the output is *true*, not just fluent
+(Art. VIII, moat analysis §9). Because the simulated personas hold a fixed set of
+tier-tagged latent truths, the harness has **known ground truth** and scores the
+pipeline in two layers that fail independently:
+
+- **Elicitation** — did the interview get the truth *out* into the transcript?
+  (recall vs the candor-achievable set)
+- **Synthesis** — did tagging turn transcript truth into correct, grounded claims?
+  (precision, confabulation, value density)
+
+It uses **gates, not averages**: *safety* gates (no confabulation, no over-claim,
+no candor leak) must pass on every case; *capability* gates (recovery ≥ 50%, value
+density ≥ 50%) are judged at the candor ceiling (open). Calibration is deliberately
+**not** scored — no confidence signal exists yet (C2), and faking one is the exact
+failure the harness exists to catch.
+
+```bash
+python3 -m ai_engine.eval           # deterministic, offline; exit 0 = all gates pass
+python3 -m ai_engine.eval --write   # also write eval_report.md
+```
+
+The headline output is the **candor curve** — elicitation recall rising as the
+persona's candor rises — which is the candor experiment run as a measurement. Exit
+code is 0 iff all gates pass, so the harness doubles as a CI gate. With
+`ANTHROPIC_API_KEY` set, the interviewer, subject, and tagger all use the live
+model — the first *real* measurement of the system.

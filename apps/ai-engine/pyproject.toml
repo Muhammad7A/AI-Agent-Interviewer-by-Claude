@@ -17,6 +17,7 @@ live = ["anthropic>=0.39"]
 
 [project.scripts]
 ontora-interview = "ai_engine.cli:main"
+ontora-eval = "ai_engine.eval.__main__:main"
 
 [tool.setuptools]
 packages = [
@@ -26,4 +27,8 @@ packages = [
   "ai_engine.transcript",
   "ai_engine.persistence",
   "ai_engine.subjects",
+  "ai_engine.evidence",
+  "ai_engine.validation",
+  "ai_engine.report",
+  "ai_engine.eval",
 ]

@@ -21,5 +21,62 @@ construction · bottleneck detection · opportunity detection.
   SDK. Default to the latest Claude models; a provider change is an
   infrastructure-only change.
 
-See `../../docs/ARCHITECTURE.md` and `../../docs/adr/`. No business logic yet —
-this is the ratified skeleton.
+See `../../docs/ARCHITECTURE.md` and `../../docs/adr/`. The hexagonal `src/`
+tree is the ratified skeleton (still contracts only). The **runnable interview
+loop** lives in the `ai_engine/` Python package below.
+
+---
+
+## Runnable interview loop (thin slice)
+
+A deliberately-thin, working implementation of the interview cognition
+capability — enough to run the Year-0/1 gate experiments (candor, elicitation,
+value density, robustness) on real people. It is **not** the full skeleton; it
+under-builds on purpose (see `../../docs/FIVE_YEAR_ROADMAP.md`, Year 0–1).
+
+What it does:
+
+- Conducts a hypothesis-driven, tier-laddering interview (`ai_engine/interview/`)
+  that pushes toward Tier 2–4 disclosure — the only tiers with commercial value.
+- Produces an **immutable, evidence-addressable transcript** (`ai_engine/transcript/`):
+  every segment is a fixed evidence anchor, so any later claim resolves to an
+  exact source span via `EvidenceRef` (the evidence-first invariant, C1/C5).
+- Writes only the **testimony layer** of the learning dataset as append-only
+  JSONL (`ai_engine/persistence/`) — never fuses interpretation/validation/outcome (C7).
+- Runs **with no model and no API key** via a deterministic mock interviewer and
+  a simulated persona that holds known, tier-tagged truths behind a candor dial —
+  this doubles as the in-code candor experiment and the synthetic-org testbed
+  (research program Q1/Q2/Q16).
+
+### Run it
+
+```bash
+cd apps/ai-engine
+
+# Fully automated: the engine interviews a simulated employee (no key needed).
+python3 -m ai_engine.cli --simulated --candor neutral
+python3 -m ai_engine.cli --simulated --candor guarded   # withholds Tier 2-4
+python3 -m ai_engine.cli --simulated --candor open       # discloses everything
+
+# Live interview at the terminal (you play the employee).
+python3 -m ai_engine.cli
+
+# Tests (stdlib only, no network):
+python3 -m unittest discover -s tests
+```
+
+The candor dial makes the core risk visible immediately: a **guarded** persona
+yields ~0 Tier-2+ disclosures, **open** yields the full set — the candor capture
+ratio with a known denominator.
+
+### Use a live model
+
+```bash
+pip install -e '.[live]'
+export ANTHROPIC_API_KEY=sk-...
+export ONTORA_MODEL=claude-opus-4-8      # optional; defaults to a current Claude
+python3 -m ai_engine.cli --simulated     # interviewer AND persona now use the model
+```
+
+The LLM sits behind a port (`ai_engine/llm/`); switching providers is an
+infrastructure-only change. No domain/application code names a model or SDK.

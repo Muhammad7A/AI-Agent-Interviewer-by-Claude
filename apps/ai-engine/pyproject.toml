@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ontora-ai-engine"
+version = "0.0.1"
+description = "Ontora AI cognition — the runnable interview loop (thin slice)."
+requires-python = ">=3.10"
+dependencies = []
+
+# The Anthropic SDK is optional. The package imports and runs in mock /
+# simulated mode with zero dependencies and no network. Install the extra to
+# talk to a live model:  pip install -e '.[live]'
+[project.optional-dependencies]
+live = ["anthropic>=0.39"]
+
+[project.scripts]
+ontora-interview = "ai_engine.cli:main"
+
+[tool.setuptools]
+packages = [
+  "ai_engine",
+  "ai_engine.llm",
+  "ai_engine.interview",
+  "ai_engine.transcript",
+  "ai_engine.persistence",
+  "ai_engine.subjects",
+]

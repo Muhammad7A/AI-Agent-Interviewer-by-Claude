@@ -37,7 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--objective", default=DEFAULT_OBJECTIVE, help="interview objective")
     parser.add_argument("--engagement-id", default="eng-demo")
     parser.add_argument("--tenant-id", default="tenant-demo")
-    parser.add_argument("--no-log", action="store_true", help="do not write the testimony event log")
+    parser.add_argument("--no-log", action="store_true", help="do not write event logs")
+    parser.add_argument("--no-tag", action="store_true", help="skip post-interview evidence tagging")
     args = parser.parse_args(argv)
 
     settings = load_settings()
@@ -83,7 +84,58 @@ def main(argv: list[str] | None = None) -> int:
     if event_log is not None:
         print(f"\nTestimony log: {event_log.path}")
     print(f"Transcript segments: {len(result.transcript.segments)}")
+
+    if not args.no_tag:
+        _tag_and_report(result.transcript, llm, settings, args)
     return 0
+
+
+def _tag_and_report(transcript, llm, settings, args) -> None:
+    """Post-interview: extract evidence-tagged claim proposals from the transcript."""
+    from .evidence.tagger import EvidenceTagger
+    from .evidence.prompts import TAGGER_PROMPT_VERSION
+
+    tagging = EvidenceTagger(llm=llm).tag(transcript)
+    report = tagging.report
+
+    print("\n" + "-" * 60)
+    print(f"PROPOSED FINDINGS (evidence-tagged) — {len(tagging.claims)} grounded, "
+          f"{report.ungrounded} rejected, "
+          f"confabulation rate {report.confabulation_rate:.0%}")
+    for claim in tagging.claims:
+        ev = claim.evidence[0]
+        resolved = ev.resolve(transcript)
+        print(f"\n  • ({claim.claim_type.value}, tier {claim.tier}, {claim.status.value})")
+        print(f"    {claim.statement}")
+        print(f"    └─ evidence [{ev.ref.segment_id} {ev.ref.start}:{ev.ref.end} "
+              f"{ev.match_kind}] → \"{resolved}\"")
+    for rej in report.rejected:
+        print(f"\n  ✗ REJECTED ({rej.reason}): \"{rej.proposal.quote[:60]}...\"")
+
+    if not args.no_log:
+        interp = EventLog(settings.data_dir, transcript.id, layer="interpretation")
+        for claim in tagging.claims:
+            ev = claim.evidence[0]
+            interp.emit(
+                "ClaimProposed",
+                claim_id=claim.id,
+                claim_type=claim.claim_type.value,
+                tier=claim.tier,
+                status=claim.status.value,
+                statement=claim.statement,
+                evidence_segment_id=ev.ref.segment_id,
+                evidence_span=[ev.ref.start, ev.ref.end],
+                match_kind=ev.match_kind,
+                prompt_version=TAGGER_PROMPT_VERSION,
+            )
+        interp.emit(
+            "GroundingReport",
+            total=report.total,
+            grounded=report.grounded,
+            ungrounded=report.ungrounded,
+            confabulation_rate=round(report.confabulation_rate, 4),
+        )
+        print(f"\nInterpretation log: {interp.path}")
 
 
 if __name__ == "__main__":

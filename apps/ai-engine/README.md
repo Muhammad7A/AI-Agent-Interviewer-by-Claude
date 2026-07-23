@@ -80,3 +80,21 @@ python3 -m ai_engine.cli --simulated     # interviewer AND persona now use the m
 
 The LLM sits behind a port (`ai_engine/llm/`); switching providers is an
 infrastructure-only change. No domain/application code names a model or SDK.
+
+### Evidence tagging (interview → grounded findings)
+
+After the interview, the loop tags the transcript into **evidence-bound claim
+proposals** (`ai_engine/evidence/`). Each proposed claim must quote the subject
+verbatim; a deterministic grounding verifier then *locates* that quote in the
+immutable transcript and turns it into a resolvable `EvidenceRef`. If the quote
+isn't found — a hallucinated or paraphrased "quote" — the claim is **rejected**,
+not shown. This is the confabulation filter (F4): it reports a
+`confabulation_rate = ungrounded / total` and never trusts the model's honesty.
+
+Claims are always `status = proposed` (AI proposes, the domain/consultant
+validates — C3), carry no confidence score yet (truth ≠ confidence — C2), and are
+logged to a **separate** `*.interpretation.jsonl` file so the interpretation
+layer is never fused with testimony (C7). Tagging runs automatically after each
+interview; pass `--no-tag` to skip it. With `ANTHROPIC_API_KEY` set, extraction
+uses the model; offline it uses a deterministic keyword tagger whose claims
+ground by construction.

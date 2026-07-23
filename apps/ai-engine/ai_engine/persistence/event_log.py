@@ -15,23 +15,31 @@ from typing import Any
 
 
 class EventLog:
-    """Writes testimony-layer events to ``<data_dir>/<interview_id>.testimony.jsonl``."""
+    """Append-only sink for ONE dataset layer.
 
-    LAYER = "testimony"
+    Each layer is written to its own file — ``<interview_id>.<layer>.jsonl`` — so
+    testimony and interpretation are never fused into one stream (C7). The default
+    layer is ``testimony``; the evidence tagger uses ``interpretation``.
+    """
 
-    def __init__(self, data_dir: Path, interview_id: str) -> None:
+    def __init__(self, data_dir: Path, interview_id: str, layer: str = "testimony") -> None:
         self._dir = Path(data_dir)
         self._dir.mkdir(parents=True, exist_ok=True)
-        self._path = self._dir / f"{interview_id}.testimony.jsonl"
+        self._layer = layer
+        self._path = self._dir / f"{interview_id}.{layer}.jsonl"
         self._interview_id = interview_id
 
     @property
     def path(self) -> Path:
         return self._path
 
+    @property
+    def layer(self) -> str:
+        return self._layer
+
     def emit(self, event: str, **payload: Any) -> None:
         record = {
-            "layer": self.LAYER,
+            "layer": self._layer,
             "event": event,
             "interview_id": self._interview_id,
             "occurred_at": datetime.now(timezone.utc).isoformat(),
@@ -44,7 +52,8 @@ class EventLog:
 class NullEventLog(EventLog):
     """A no-op log for tests and dry runs."""
 
-    def __init__(self) -> None:  # noqa: D107 - intentionally skips file setup
+    def __init__(self, layer: str = "testimony") -> None:  # noqa: D107
+        self._layer = layer
         self._interview_id = "null"
 
     def emit(self, event: str, **payload: Any) -> None:  # noqa: D102

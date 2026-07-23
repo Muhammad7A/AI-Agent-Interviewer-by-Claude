@@ -98,3 +98,38 @@ layer is never fused with testimony (C7). Tagging runs automatically after each
 interview; pass `--no-tag` to skip it. With `ANTHROPIC_API_KEY` set, extraction
 uses the model; offline it uses a deterministic keyword tagger whose claims
 ground by construction.
+
+### Validation gate (AI proposes → human validates)
+
+Proposed claims become truth only when a human accepts them (`ai_engine/validation/`,
+C3/C4). Each decision — **accept / reject / amend** — is a recorded event carrying
+the validator's identity and the evidence they reviewed; you cannot decide without
+referencing the evidence, and reject/amend require a reason (friction against
+rubber-stamping, F6). Decisions land in a **separate** `*.validation.jsonl` file —
+the fourth dataset layer, never fused with the others — and each record is the
+supervised label the learning loop compounds on (research program Q6). Pass
+`--validate` to review by hand; otherwise an **auto-sim reviewer** decides (clearly
+flagged `auto-sim` so demo labels are excluded from real learning).
+
+### Report (the deliverable)
+
+Validated findings render to a Markdown report (`ai_engine/report/`) grouped by
+finding type. Only accepted/amended findings appear — rejected and unvalidated
+proposals are excluded — and every finding carries a verbatim evidence quote that
+resolves to the immutable transcript (no finding without provenance, C1/C5). A
+simulated-validation report is stamped **DEMO ONLY** so it can't be mistaken for a
+real deliverable. Written to `<data_dir>/<id>.report.md`.
+
+### The full pipeline
+
+```
+interview  →  transcript  →  evidence tags  →  validation  →  report
+(testimony)   (immutable)    (interpretation)   (validation)   (deliverable)
+```
+
+One command runs all four stages and writes each dataset layer to its own file:
+
+```bash
+python3 -m ai_engine.cli --simulated --candor open      # auto-sim validation
+python3 -m ai_engine.cli --validate                     # you interview AND validate
+```

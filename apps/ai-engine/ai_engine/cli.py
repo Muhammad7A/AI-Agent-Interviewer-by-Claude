@@ -39,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tenant-id", default="tenant-demo")
     parser.add_argument("--no-log", action="store_true", help="do not write event logs")
     parser.add_argument("--no-tag", action="store_true", help="skip post-interview evidence tagging")
+    parser.add_argument("--validate", action="store_true",
+                        help="validate findings by hand (default: auto-sim reviewer)")
     args = parser.parse_args(argv)
 
     settings = load_settings()
@@ -86,11 +88,13 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Transcript segments: {len(result.transcript.segments)}")
 
     if not args.no_tag:
-        _tag_and_report(result.transcript, llm, settings, args)
+        claims = _tag(result.transcript, llm, settings, args)
+        findings = _validate(result.transcript, claims, settings, args)
+        _report(result.transcript, findings, result.state, args, settings)
     return 0
 
 
-def _tag_and_report(transcript, llm, settings, args) -> None:
+def _tag(transcript, llm, settings, args):
     """Post-interview: extract evidence-tagged claim proposals from the transcript."""
     from .evidence.tagger import EvidenceTagger
     from .evidence.prompts import TAGGER_PROMPT_VERSION
@@ -136,6 +140,90 @@ def _tag_and_report(transcript, llm, settings, args) -> None:
             confabulation_rate=round(report.confabulation_rate, 4),
         )
         print(f"\nInterpretation log: {interp.path}")
+    return tagging.claims
+
+
+def _validate(transcript, claims, settings, args):
+    """The AI-proposes / human-validates gate."""
+    from .validation.gate import AutoValidator, ValidationGate, validate_claims
+
+    event_log = None if args.no_log else EventLog(
+        settings.data_dir, transcript.id, layer="validation"
+    )
+
+    if args.validate:
+        validator = _interactive_validator_identity()
+        gate = ValidationGate(validator, event_log)
+        print("\n" + "-" * 60)
+        print("VALIDATION — review each proposed finding: [a]ccept / [r]eject / "
+              "[e]dit. Evidence is shown first.")
+        findings = validate_claims(gate, claims, _interactive_decide(transcript))
+    else:
+        auto = AutoValidator()
+        gate = ValidationGate(auto.VALIDATOR, event_log)
+        findings = validate_claims(gate, claims, auto.decide)
+        print("\n" + "-" * 60)
+        print("VALIDATION — auto-sim reviewer (NOT human; demo only). "
+              "Pass --validate to review by hand.")
+
+    from .validation.model import Verdict
+    for f in findings:
+        mark = {"accepted": "✓", "amended": "✎", "rejected": "✗"}[f.verdict.value]
+        print(f"  {mark} {f.verdict.value:8s} {f.statement[:70]}")
+    if event_log is not None:
+        print(f"\nValidation log: {event_log.path}")
+    return findings
+
+
+def _report(transcript, findings, state, args, settings) -> None:
+    from .report.generator import render_markdown_report
+
+    kind = "consultant" if args.validate else "auto-sim"
+    name = "Human consultant" if args.validate else "Auto-Sim Reviewer (demo)"
+    md = render_markdown_report(
+        transcript=transcript,
+        findings=findings,
+        objective=args.objective,
+        engagement_id=args.engagement_id,
+        interview_id=transcript.id,
+        validator_kind=kind,
+        validator_name=name,
+        coverage_summary=state.summary(),
+    )
+    if args.no_log:
+        print("\n" + "=" * 60 + "\n" + md)
+        return
+    path = settings.data_dir / f"{transcript.id}.report.md"
+    path.write_text(md, encoding="utf-8")
+    print(f"\nReport: {path}")
+
+
+def _interactive_validator_identity():
+    from .validation.model import Validator
+
+    name = input("\nValidator name> ").strip() or "consultant"
+    return Validator(id=f"val-{name.lower().replace(' ', '-')}", display_name=name)
+
+
+def _interactive_decide(transcript):
+    from .validation.model import Correction, Verdict
+
+    def decide(claim):
+        ev = claim.evidence[0]
+        print(f"\n  ({claim.claim_type.value}, tier {claim.tier})")
+        print(f"  Statement: {claim.statement}")
+        print(f"  Evidence:  \"{ev.resolve(transcript)}\"")
+        choice = input("  [a]ccept / [r]eject / [e]dit> ").strip().lower()
+        if choice.startswith("r"):
+            reason = input("  reason> ").strip() or "rejected by reviewer"
+            return Verdict.REJECTED, reason, None
+        if choice.startswith("e"):
+            new_stmt = input("  corrected statement> ").strip()
+            reason = input("  reason> ").strip() or "amended by reviewer"
+            return Verdict.AMENDED, reason, Correction(new_statement=new_stmt or None)
+        return Verdict.ACCEPTED, "", None
+
+    return decide
 
 
 if __name__ == "__main__":

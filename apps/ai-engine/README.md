@@ -144,6 +144,37 @@ python3 -m ai_engine.cli --simulated --candor open      # auto-sim validation
 python3 -m ai_engine.cli --validate                     # you interview AND validate
 ```
 
+### Multi-interview aggregation (from interview tool to organizational intelligence)
+
+One interview is a data point; an organization is the pattern across many. The
+aggregation module (`ai_engine/aggregation/`) fuses the findings of many interviews
+of the *same* org:
+
+- Findings are **clustered into topics** by shared vocabulary (one issue seen
+  through multiple lenses — a "friction" finding and a "bottleneck" finding about
+  the same approval step land in one topic).
+- Where independent people say the same thing → **corroboration** (raises
+  confidence, shown with each person's own provenance).
+- Where they disagree → a **contradiction**, typed as conflict / variation /
+  complementarity (research program Q7/Q8). A conflict is a *signal to
+  investigate*, surfaced — not averaged away.
+
+Crucially, aggregation **never invents a fact** — it only relates findings that
+each already carry their own evidence, and every statement still resolves to its
+own interview's transcript. The relation check is a port: a conservative offline
+heuristic (opposing polarity on a shared topic = conflict), or a live-model NLI
+classifier through the same seam.
+
+```bash
+python3 -m ai_engine.aggregation           # runs a 3-person demo org, offline
+python3 -m ai_engine.aggregation --write   # also writes org_report.md
+```
+
+The demo org is built so its interviews **corroborate** on one thing (a director's
+approval bottleneck, all three) and **conflict** on another (does anyone follow the
+official process? — one says yes, one says no). In production you aggregate
+*validated* findings; the demo aggregates tagged proposals for a runnable example.
+
 ### Evaluation harness (the system's conscience)
 
 The only technical moat is knowing whether the output is *true*, not just fluent

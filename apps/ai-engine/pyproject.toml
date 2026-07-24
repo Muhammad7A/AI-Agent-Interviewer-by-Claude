@@ -18,6 +18,7 @@ live = ["anthropic>=0.39"]
 [project.scripts]
 ontora-interview = "ai_engine.cli:main"
 ontora-eval = "ai_engine.eval.__main__:main"
+ontora-aggregate = "ai_engine.aggregation.__main__:main"
 
 [tool.setuptools]
 packages = [
@@ -31,4 +32,5 @@ packages = [
   "ai_engine.validation",
   "ai_engine.report",
   "ai_engine.eval",
+  "ai_engine.aggregation",
 ]

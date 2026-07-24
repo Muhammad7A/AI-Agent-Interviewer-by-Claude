@@ -90,6 +90,44 @@ class GroundingTest(unittest.TestCase):
         self.assertAlmostEqual(result.report.confabulation_rate, 0.5)
 
 
+class HardenedGroundingTest(unittest.TestCase):
+    """Real models re-emit true quotes with different punctuation; those must still
+    ground. Paraphrases must not."""
+
+    def test_curly_apostrophe_still_grounds(self):
+        t = _transcript_with("The director's approval step adds three days.")  # straight '
+        prop = RawProposal("friction", "Director approval is slow.",
+                            quote="director’s approval step", tier=3)  # curly '
+        claim, reason = ground_proposal(prop, t)
+        self.assertEqual(reason, "grounded")
+        self.assertEqual(claim.evidence[0].match_kind, "normalized")
+        # Resolves to the REAL source span (straight apostrophe), not the model's.
+        self.assertIn("director's approval step", claim.evidence[0].resolve(t))
+
+    def test_em_dash_and_case_still_ground(self):
+        t = _transcript_with("I rebuild the report by hand — about four hours.")  # em dash
+        prop = RawProposal("wasted_effort", "Manual rebuild.",
+                            quote="BY HAND - ABOUT FOUR HOURS", tier=2)  # hyphen + caps
+        claim, reason = ground_proposal(prop, t)
+        self.assertEqual(reason, "grounded")
+
+    def test_extra_whitespace_still_grounds(self):
+        t = _transcript_with("I keep a private spreadsheet because it is faster.")
+        prop = RawProposal("workaround", "Private spreadsheet.",
+                            quote="private    spreadsheet", tier=2)  # collapsed spaces
+        claim, reason = ground_proposal(prop, t)
+        self.assertEqual(reason, "grounded")
+
+    def test_paraphrase_still_rejected(self):
+        # The filter must not go soft: changing the WORDS is still confabulation.
+        t = _transcript_with("I keep a private spreadsheet.")
+        prop = RawProposal("workaround", "Maintains a spreadsheet.",
+                            quote="I maintain a personal spreadsheet", tier=2)
+        claim, reason = ground_proposal(prop, t)
+        self.assertIsNone(claim)
+        self.assertEqual(reason, "quote_not_found")
+
+
 class EvidenceFirstInvariantTest(unittest.TestCase):
     def test_claim_without_evidence_is_forbidden(self):
         with self.assertRaises(EvidenceError):

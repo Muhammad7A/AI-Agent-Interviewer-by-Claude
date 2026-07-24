@@ -32,28 +32,69 @@ from .model import (
 )
 
 
+# Unicode characters a model commonly substitutes when it echoes a quote:
+# curly quotes for straight, en/em dashes for hyphen, exotic spaces. Each maps to
+# exactly ONE ascii character so the mapping is length-preserving — which means an
+# offset in the canonicalized text is the SAME offset in the original text, so the
+# resulting EvidenceRef still points at real immutable source.
+_CANON: dict[str, str] = {
+    "‘": "'", "’": "'", "‚": "'", "‛": "'",  # ' ' ‚ ‛
+    "“": '"', "”": '"', "„": '"', "‟": '"',  # " " „ ‟
+    "‐": "-", "‑": "-", "‒": "-", "–": "-",   # ‐ ‑ ‒ –
+    "—": "-", "―": "-", "−": "-",                   # — ― −
+    " ": " ", " ": " ", " ": " ", " ": " ",   # nbsp, thin spaces
+    " ": " ", "\t": " ",
+}
+
+
+def _canon_char(ch: str) -> str:
+    mapped = _CANON.get(ch, ch)
+    lowered = mapped.lower()
+    # Keep it length-preserving: a rare char that lowercases to >1 char is left as-is.
+    return lowered if len(lowered) == 1 else mapped
+
+
+def _canon(text: str) -> str:
+    return "".join(_canon_char(c) for c in text)
+
+
 def _locate(haystack: str, needle: str) -> tuple[int, int, str] | None:
     """Return (start, end, match_kind) of ``needle`` within ``haystack``, or None.
 
-    Tries an exact substring first, then a flexible match that tolerates only
-    differences in whitespace and letter case — both of which still yield precise
-    offsets into the original text. Nothing looser is allowed.
+    Strictness is the whole point of the confabulation filter: we accept a quote
+    only if it is the *same words* as the source. We DO tolerate differences that
+    are purely character-encoding — unicode punctuation, letter case, whitespace,
+    and trailing punctuation — because a real model routinely re-emits a true quote
+    with curly quotes or an em-dash, and rejecting that true quote would punish
+    honesty. We do NOT tolerate paraphrase: change a word and it will not ground.
     """
     needle = needle.strip()
     if not needle:
         return None
 
+    # 1. Exact substring — the fast, unambiguous path.
     idx = haystack.find(needle)
     if idx >= 0:
         return idx, idx + len(needle), "exact"
 
-    tokens = [t for t in re.split(r"\s+", needle) if t]
-    if not tokens:
-        return None
-    pattern = r"\s+".join(re.escape(t) for t in tokens)
-    match = re.search(pattern, haystack, flags=re.IGNORECASE)
-    if match:
-        return match.start(), match.end(), "flexible"
+    # Canonicalize both (length-preserving, so offsets still map to the original).
+    chay, cneedle = _canon(haystack), _canon(needle)
+
+    # 2. Same words after unicode/case normalization, ignoring trailing punctuation.
+    cneedle_core = cneedle.rstrip(" .,;:!?\"'-")
+    for probe in (cneedle, cneedle_core):
+        if probe:
+            j = chay.find(probe)
+            if j >= 0:
+                return j, j + len(probe), "normalized"
+
+    # 3. Same words but a different amount of whitespace between them.
+    tokens = [t for t in re.split(r"\s+", cneedle_core or cneedle) if t]
+    if tokens:
+        pattern = r"\s+".join(re.escape(t) for t in tokens)
+        match = re.search(pattern, chay)
+        if match:
+            return match.start(), match.end(), "flexible"
     return None
 
 

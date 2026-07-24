@@ -108,5 +108,19 @@ class GroundingReport:
 
 @dataclass
 class TaggingResult:
-    claims: list[Claim]
-    report: GroundingReport
+    claims: list[Claim]                       # passed BOTH grounding and entailment
+    report: GroundingReport                   # grounding stage (quote existence)
+    entailment_rejected: list = field(default_factory=list)  # real quote, unsupported claim
+
+    @property
+    def confabulation_rate(self) -> float:
+        """Combined fabrication rate: invented quotes AND real-quote-wrong-claim.
+
+        ``report.confabulation_rate`` covers only the first kind (unsourced). This
+        property adds the second (grounded but not entailed) — the fuller F4 number.
+        """
+        total = self.report.total
+        if not total:
+            return 0.0
+        fabricated = self.report.ungrounded + len(self.entailment_rejected)
+        return fabricated / total

@@ -18,18 +18,32 @@ from .model import (
     TaggingResult,
 )
 from .grounding import ground_proposal, ground_proposals
+from .entailment import (
+    Entailment,
+    EntailmentResult,
+    HeuristicEntailmentChecker,
+    LlmEntailmentChecker,
+    apply_entailment,
+    make_checker,
+)
 from .tagger import EvidenceTagger
 
 __all__ = [
     "Claim",
     "ClaimStatus",
     "ClaimType",
+    "Entailment",
+    "EntailmentResult",
     "EvidenceError",
     "EvidenceTagger",
     "GroundedEvidence",
     "GroundingReport",
+    "HeuristicEntailmentChecker",
+    "LlmEntailmentChecker",
     "RawProposal",
     "TaggingResult",
+    "apply_entailment",
     "ground_proposal",
     "ground_proposals",
+    "make_checker",
 ]

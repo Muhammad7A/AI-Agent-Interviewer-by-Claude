@@ -82,7 +82,7 @@ def _run_once(case: Case, llm: LLMClient | None) -> CaseMetrics:
         gold=gold,
         transcript=result.transcript,
         claims=tagging.claims,
-        confabulation_rate=tagging.report.confabulation_rate,
+        confabulation_rate=tagging.confabulation_rate,  # combined: grounding + entailment
     )
 
 

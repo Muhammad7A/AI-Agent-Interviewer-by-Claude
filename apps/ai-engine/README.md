@@ -94,7 +94,17 @@ not shown. This is the confabulation filter (F4): it reports a
 Claims are always `status = proposed` (AI proposes, the domain/consultant
 validates — C3), carry no confidence score yet (truth ≠ confidence — C2), and are
 logged to a **separate** `*.interpretation.jsonl` file so the interpretation
-layer is never fused with testimony (C7). Tagging runs automatically after each
+layer is never fused with testimony (C7).
+
+**Two verification gates, not one.** Grounding proves the quote is *real*; a second
+**entailment** gate (`ai_engine/evidence/entailment.py`) proves the quote actually
+*supports* the claim. This closes a real hole: a model can quote a genuine sentence
+and staple a fabricated claim to it ("uses ChatGPT" → "leaked customer data") — the
+quote grounds perfectly, but entailment rejects the over-reach. The confabulation
+rate now counts both kinds of fabrication (unsourced quotes **and** unsupported
+claims). Offline uses a conservative heuristic that catches escalation into
+accusations; with a live model, a strict natural-language-entailment check drops in
+through the same seam. Tagging runs automatically after each
 interview; pass `--no-tag` to skip it. With `ANTHROPIC_API_KEY` set, extraction
 uses the model; offline it uses a deterministic keyword tagger whose claims
 ground by construction.

@@ -103,9 +103,9 @@ def _tag(transcript, llm, settings, args):
     report = tagging.report
 
     print("\n" + "-" * 60)
-    print(f"PROPOSED FINDINGS (evidence-tagged) — {len(tagging.claims)} grounded, "
-          f"{report.ungrounded} rejected, "
-          f"confabulation rate {report.confabulation_rate:.0%}")
+    print(f"PROPOSED FINDINGS (evidence-tagged) — {len(tagging.claims)} verified, "
+          f"{report.ungrounded} unsourced, {len(tagging.entailment_rejected)} unsupported, "
+          f"confabulation rate {tagging.confabulation_rate:.0%}")
     for claim in tagging.claims:
         ev = claim.evidence[0]
         resolved = ev.resolve(transcript)
@@ -114,7 +114,9 @@ def _tag(transcript, llm, settings, args):
         print(f"    └─ evidence [{ev.ref.segment_id} {ev.ref.start}:{ev.ref.end} "
               f"{ev.match_kind}] → \"{resolved}\"")
     for rej in report.rejected:
-        print(f"\n  ✗ REJECTED ({rej.reason}): \"{rej.proposal.quote[:60]}...\"")
+        print(f"\n  ✗ UNSOURCED ({rej.reason}): \"{rej.proposal.quote[:60]}...\"")
+    for erej in tagging.entailment_rejected:
+        print(f"\n  ✗ UNSUPPORTED ({erej.reason}): \"{erej.claim.statement[:60]}...\"")
 
     if not args.no_log:
         interp = EventLog(settings.data_dir, transcript.id, layer="interpretation")

@@ -13,6 +13,7 @@ import re
 
 from ..llm.client import LLMClient
 from ..transcript.model import Speaker, Transcript
+from .entailment import EntailmentChecker, apply_entailment, make_checker
 from .grounding import ground_proposals
 from .model import RawProposal, TaggingResult
 from .prompts import TAGGER_SYSTEM, render_tagger_prompt
@@ -35,9 +36,16 @@ _LOW_SIGNAL = (
 
 
 class EvidenceTagger:
-    def __init__(self, *, llm: LLMClient | None = None, temperature: float = 0.0) -> None:
+    def __init__(
+        self,
+        *,
+        llm: LLMClient | None = None,
+        temperature: float = 0.0,
+        entailment: EntailmentChecker | None = None,
+    ) -> None:
         self._llm = llm
         self._temperature = temperature
+        self._entailment = entailment
 
     @property
     def is_live(self) -> bool:
@@ -49,7 +57,14 @@ class EvidenceTagger:
             if self._llm is not None
             else self._mock_proposals(transcript)
         )
-        return ground_proposals(proposals, transcript)
+        # Gate 1: grounding — is the quote real?
+        result = ground_proposals(proposals, transcript)
+        # Gate 2: entailment — does the quote actually support the claim?
+        checker = self._entailment or make_checker(self._llm)
+        kept, rejected = apply_entailment(result.claims, transcript, checker)
+        result.claims = kept
+        result.entailment_rejected = rejected
+        return result
 
     # -- live path ---------------------------------------------------------
     def _live_proposals(self, transcript: Transcript) -> list[RawProposal]:

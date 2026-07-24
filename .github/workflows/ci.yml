@@ -1,0 +1,33 @@
+name: CI
+
+# Runs on every push and pull request. Turns the Engineering Constitution from a
+# document into enforced rules: if the tests break or the evaluation gate fails
+# (e.g. confabulation creeps above threshold, or truth recovery drops below it),
+# the build goes red.
+on:
+  push:
+  pull_request:
+
+jobs:
+  ai-engine:
+    name: ai-engine tests + eval gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai-engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # The ai-engine runs in mock mode with zero third-party dependencies, so
+      # there is nothing to install — the whole suite is stdlib only.
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      # Exits non-zero if any safety or capability gate fails, failing the build.
+      - name: Run evaluation gate
+        run: python -m ai_engine.eval

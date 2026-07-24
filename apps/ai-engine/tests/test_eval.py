@@ -87,20 +87,27 @@ class SuiteTest(unittest.TestCase):
         suite = run_suite()
         by_persona: dict[str, dict[str, float]] = {}
         for c in suite.cases:
-            by_persona.setdefault(c.metrics.persona, {})[c.metrics.candor] = c.metrics.elicitation_recall
+            by_persona.setdefault(c.persona, {})[c.candor] = c.runs[0].elicitation_recall
         for curve in by_persona.values():
             self.assertLessEqual(curve["guarded"], curve["neutral"] + 1e-9)
             self.assertLessEqual(curve["neutral"], curve["open"] + 1e-9)
 
     def test_no_case_fabricates(self):
         for c in run_suite().cases:
-            self.assertEqual(c.metrics.confabulation_rate, 0.0)
-            self.assertEqual(c.metrics.candor_leak, 0)
+            self.assertEqual(c.runs[0].confabulation_rate, 0.0)
+            self.assertEqual(c.runs[0].candor_leak, 0)
 
     def test_open_case_recovers_meaningful_truth(self):
         result = run_case(next(c for c in default_suite() if c.name == "ops-analyst/open"))
-        self.assertGreaterEqual(result.metrics.e2e_recall, 0.5)
+        self.assertGreaterEqual(result.runs[0].e2e_recall, 0.5)
         self.assertTrue(result.passed)
+
+    def test_repeats_produce_multiple_runs(self):
+        result = run_case(next(c for c in default_suite() if c.name == "ops-analyst/open"), repeats=3)
+        self.assertEqual(len(result.runs), 3)
+        # Mock mode is deterministic, so the spread is zero.
+        lo, mean, hi = result.stat(lambda m: m.e2e_recall)
+        self.assertEqual(lo, hi)
 
 
 if __name__ == "__main__":

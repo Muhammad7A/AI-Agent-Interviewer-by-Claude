@@ -33,11 +33,42 @@ TIER_NAMES: dict[int, str] = {
 # An area counts as "covered" once we've reached at least this tier in it.
 COVERAGE_TIER = 2
 
+# How long to leave a topic alone after the subject was guarded about it.
+DEFER_TURNS = 2
+
+# Stop pushing an area after this many consecutive vague answers.
+MAX_VAGUE_STREAK = 2
+
 
 @dataclass
 class AreaCoverage:
     level: str = "untouched"  # untouched | touched | covered
     max_tier: int = -1
+    #: Turns since this area was last asked about. Used to come back to a topic the
+    #: subject was guarded about, rather than abandoning it.
+    last_asked_turn: int = -1
+    #: Set when the subject was guarded here, so the strategy backs off and returns.
+    deferred_until_turn: int = -1
+    #: Consecutive vague answers in this area — three strikes and it is not worth more.
+    vague_streak: int = 0
+
+
+@dataclass
+class TurnRecord:
+    """What happened on one exchange, so the strategy can reason over the interview.
+
+    Without this the engine collects assessments and immediately forgets them — it can
+    know an answer was vague or guarded and still march on to the next scripted
+    question, which is precisely the behaviour that loses candour.
+    """
+
+    turn: int
+    area: str
+    tier_targeted: int
+    tier_reached: int
+    specificity: str
+    candor_signal: str
+    answer: str = ""
 
 
 @dataclass
@@ -48,6 +79,10 @@ class InterviewState:
     )
     turn_count: int = 0
     disclosures: int = 0  # count of substantive Tier 2+ disclosures
+    history: list[TurnRecord] = field(default_factory=list)
+    #: The area the last question aimed at, so its answer can be attributed.
+    pending_area: str | None = None
+    pending_tier: int = 0
 
     def record_answer(
         self,
@@ -55,6 +90,9 @@ class InterviewState:
         areas_touched: list[str],
         tier_reached: int,
         got_disclosure: bool,
+        specificity: str = "none",
+        candor_signal: str = "neutral",
+        answer: str = "",
     ) -> None:
         """Fold an assessment of the subject's last answer into coverage."""
         for area in areas_touched:
@@ -68,6 +106,37 @@ class InterviewState:
                 cov.level = "touched"
         if got_disclosure and tier_reached >= COVERAGE_TIER:
             self.disclosures += 1
+
+        area = (areas_touched[0] if areas_touched else self.pending_area) or ""
+        cov = self.coverage.get(area)
+        if cov is not None:
+            if specificity == "concrete":
+                cov.vague_streak = 0
+            else:
+                cov.vague_streak += 1
+            if candor_signal == "guarded":
+                # Back off this area and come back to it, rather than pressing.
+                cov.deferred_until_turn = self.turn_count + DEFER_TURNS
+        self.history.append(TurnRecord(
+            turn=self.turn_count,
+            area=area,
+            tier_targeted=self.pending_tier,
+            tier_reached=tier_reached,
+            specificity=specificity,
+            candor_signal=candor_signal,
+            answer=answer,
+        ))
+
+    def note_question(self, area: str, tier: int) -> None:
+        """Remember what the question just asked was aiming at."""
+        self.pending_area = area
+        self.pending_tier = tier
+        cov = self.coverage.get(area)
+        if cov is not None:
+            cov.last_asked_turn = self.turn_count
+
+    def subject_answers(self) -> list[str]:
+        return [r.answer for r in self.history if r.answer]
 
     def uncovered_areas(self) -> list[str]:
         return [a for a, c in self.coverage.items() if c.level != "covered"]

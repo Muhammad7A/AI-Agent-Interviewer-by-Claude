@@ -84,13 +84,27 @@ class SuiteTest(unittest.TestCase):
         self.assertTrue(run_suite().passed)
 
     def test_candor_curve_is_non_decreasing(self):
+        # Measured as the ABSOLUTE number of truths elicited, not as recall.
+        # Recall is a ratio whose denominator grows with candor — a guarded persona has
+        # one reachable truth, so finding it scores 100% while an open persona finding
+        # five of six scores 83%. Comparing those ratios across candor levels compares
+        # different denominators and reads a success as a regression.
         suite = run_suite()
-        by_persona: dict[str, dict[str, float]] = {}
+        by_persona: dict[str, dict[str, int]] = {}
         for c in suite.cases:
-            by_persona.setdefault(c.persona, {})[c.candor] = c.runs[0].elicitation_recall
-        for curve in by_persona.values():
-            self.assertLessEqual(curve["guarded"], curve["neutral"] + 1e-9)
-            self.assertLessEqual(curve["neutral"], curve["open"] + 1e-9)
+            by_persona.setdefault(c.persona, {})[c.candor] = c.runs[0].elicited
+        for persona, curve in by_persona.items():
+            with self.subTest(persona=persona):
+                self.assertLessEqual(curve["guarded"], curve["neutral"])
+                self.assertLessEqual(curve["neutral"], curve["open"])
+
+    def test_more_candor_yields_strictly_more_truth(self):
+        # The substantive claim the curve exists to make.
+        suite = run_suite()
+        for persona in {c.persona for c in suite.cases}:
+            cases = {c.candor: c.runs[0] for c in suite.cases if c.persona == persona}
+            with self.subTest(persona=persona):
+                self.assertGreater(cases["open"].elicited, cases["guarded"].elicited)
 
     def test_no_case_fabricates(self):
         for c in run_suite().cases:

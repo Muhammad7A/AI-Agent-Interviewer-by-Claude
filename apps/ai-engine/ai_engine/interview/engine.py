@@ -1,45 +1,170 @@
 """The interview engine: produce the next interviewer turn.
 
-If a live LLM client is supplied, the engine is genuinely hypothesis-driven — the
-model assesses the last answer and selects the next question. With no client it
-falls back to a deterministic tier-laddering script so the whole loop runs
-offline (tests, CI, the synthetic-org testbed). The scripted fallback is a real
-interview strategy, just a fixed one — which is also the baseline the research
-program wants to beat (learned vs scripted, Q5).
+The engine no longer walks a fixed script. It assesses the last answer, folds that into
+the interview state, asks :class:`InterviewStrategy` what to do next, and then phrases
+it — offline from a question bank, live by handing the model the chosen move as a
+directive. Both paths run the same decision, so the strategy is measurable by the eval
+harness rather than hidden inside a prompt.
+
+The offline question texts are deliberately unchanged from the original scripted
+ladder: the synthetic personas key their disclosures off this exact wording, so
+rephrasing them would quietly break the testbed rather than improve it. What changed is
+*which* question is asked, *when*, and what happens when an answer is vague or guarded.
 """
 from __future__ import annotations
 
 from ..llm.client import LLMClient, Message
 from .prompts import INTERVIEWER_SYSTEM, render_turn_prompt
-from .state import COVERAGE_TIER, TARGET_AREAS, InterviewState
+from .state import InterviewState
+from .strategy import Intent, InterviewStrategy, Move
 from .turn import Assessment, InterviewerTurn, NextMove, parse_turn
 
-# Deterministic laddering script for mock mode: (area, tier, question).
-_MOCK_LADDER: list[tuple[str, int, str]] = [
-    ("process_reality", 1,
-     "Thanks for making the time — nothing you say gets back to your employer with "
-     "your name on it. To start, can you walk me through how your work actually gets "
-     "done day to day?"),
-    ("process_reality", 1,
-     "Where does the real version of that differ from how it's officially supposed to work?"),
-    ("workarounds", 2,
-     "When the official tools or process get in your way, what do you do instead — "
-     "any workarounds you've built for yourself?"),
-    ("bottlenecks", 2,
-     "Where do things most often stall or pile up waiting on someone or something?"),
-    ("wasted_effort", 2,
-     "When was the last time you spent real effort on something that felt redundant "
-     "or got redone? Walk me through it."),
-    ("friction", 3,
-     "Was that more about the tools, the process, or a decision someone made? "
-     "There's no wrong answer — I'm just mapping where the friction sits."),
-    ("ai_opportunity", 2,
-     "Which parts of your week are the most repetitive or rules-based — the stuff "
-     "you could almost do in your sleep?"),
-    ("friction", 4,
-     "A lot of people quietly work around all this. What's your own honest version — "
-     "anything you do differently than you're 'supposed' to?"),
-]
+# Question bank, keyed by (area, tier). Texts preserved from the original ladder.
+_BANK: dict[tuple[str, int], str] = {
+    ("process_reality", 1):
+        "Where does the real version of that differ from how it's officially supposed "
+        "to work?",
+    ("workarounds", 2):
+        "When the official tools or process get in your way, what do you do instead — "
+        "any workarounds you've built for yourself?",
+    ("bottlenecks", 2):
+        "Where do things most often stall or pile up waiting on someone or something?",
+    ("wasted_effort", 2):
+        "When was the last time you spent real effort on something that felt redundant "
+        "or got redone? Walk me through it.",
+    ("friction", 3):
+        "Was that more about the tools, the process, or a decision someone made? "
+        "There's no wrong answer — I'm just mapping where the friction sits.",
+    ("ai_opportunity", 2):
+        "Which parts of your week are the most repetitive or rules-based — the stuff "
+        "you could almost do in your sleep?",
+    ("friction", 4):
+        "A lot of people quietly work around all this. What's your own honest version — "
+        "anything you do differently than you're 'supposed' to?",
+}
+
+_OPENING = (
+    "Thanks for making the time — nothing you say gets back to your employer with your "
+    "name on it. To start, can you walk me through how your work actually gets done "
+    "day to day?"
+)
+
+_CLOSING = "This has been genuinely useful. Thank you for being candid — we're done."
+
+# Move-specific phrasings. Kept clear of the bank's keywords so the offline testbed
+# attributes each disclosure to the question that actually earned it.
+# A specificity probe must NAME what it is probing. "Can you give me an example?" is a
+# weak question — it asks the subject to do the work of deciding what is relevant. A
+# probe that repeats the topic's own words gets a concrete instance instead.
+_SPECIFICITY_BY_AREA: dict[str, str] = {
+    "process_reality":
+        "When did it last differ from how it's officially supposed to work — what "
+        "actually happened that time?",
+    "workarounds":
+        "When did you last do something instead of the official way — what was the "
+        "workaround, exactly?",
+    "bottlenecks":
+        "When did things last stall or pile up — what were you waiting on, and for "
+        "how long?",
+    "wasted_effort":
+        "What was the last thing that felt redundant or got redone — what was it, and "
+        "how long did it take?",
+    "ai_opportunity":
+        "Which repetitive, rules-based task did you do most recently — walk me through "
+        "it step by step?",
+    "friction":
+        "What was the last decision someone made that got in your way — what happened "
+        "after that?",
+}
+
+_SPECIFICITY_FALLBACK = (
+    "Can you give me the most recent example of that — what happened, and roughly when?"
+)
+_DE_ESCALATE = (
+    "That's completely fine, we can leave that there. Let's step back: what does an "
+    "ordinary day look like for you?"
+)
+
+
+def _phrase(move: Move, state: InterviewState) -> str:
+    if move.intent is Intent.OPEN:
+        return _OPENING
+    if move.intent is Intent.CLOSE:
+        return _CLOSING
+    if move.intent is Intent.CONVERT_SPECIFICITY:
+        return _SPECIFICITY_BY_AREA.get(move.target_area, _SPECIFICITY_FALLBACK)
+    if move.intent is Intent.DE_ESCALATE:
+        return _DE_ESCALATE
+    if move.intent is Intent.SURFACE_CONTRADICTION:
+        earlier = move.earlier[:90]
+        return (f"Earlier you mentioned \"{earlier}\" — how does that sit alongside what "
+                f"you just said? I'm not catching you out, I just want to get it right.")
+    # LADDER: the bank entry for this area at this tier, or the nearest lower tier.
+    for tier in range(move.target_tier, 0, -1):
+        text = _BANK.get((move.target_area, tier))
+        if text:
+            return text
+    for (area, _tier), text in _BANK.items():
+        if area == move.target_area:
+            return text
+    return _CLOSING
+
+
+# Two different failures, which must not be conflated.
+#
+# A DEFLECTION is a refusal: the subject is declining to go there. The right response
+# is to back off and return later.
+#
+# A VAGUE answer is not a refusal — the subject answered, but said nothing usable. The
+# right response is the opposite: stay on the topic and ask for a concrete instance.
+#
+# Treating vagueness as guardedness makes the interviewer retreat precisely when it
+# should probe, and (as this engine did until it was caught) can livelock: soothe, get
+# another vague answer, soothe again, forever.
+_DEFLECTION_MARKERS = (
+    "rather not", "prefer not", "no comment", "don't want to get into",
+    "not comfortable", "won't answer", "skip that", "pass on that",
+)
+
+_VAGUE_MARKERS = (
+    "mostly fine", "nothing jumps out", "pretty standard", "standard stuff",
+    "nothing really", "can't think of", "not sure", "hard to say",
+    "can't really say",
+)
+
+
+def _is_deflection(answer: str) -> bool:
+    low = answer.lower()
+    return any(m in low for m in _DEFLECTION_MARKERS)
+
+
+def _is_vague(answer: str) -> bool:
+    low = answer.lower()
+    return any(m in low for m in _VAGUE_MARKERS) or len(answer.split()) < 6
+
+
+def assess_locally(answer: str, state: InterviewState) -> Assessment:
+    """A fast, model-free read of an answer.
+
+    Offline this is the assessment of record. Live it is used only to keep the
+    strategy's directive current: the model's own assessment of an answer arrives with
+    the *following* response, so without a local read the strategy would always be
+    reacting one turn late — and reacting late to "I'd rather not say" is the same as
+    not reacting.
+    """
+    deflected = _is_deflection(answer)
+    vague = deflected or _is_vague(answer)
+    substantive = not vague
+    area = state.pending_area or ""
+    return Assessment(
+        got_substantive_disclosure=substantive,
+        tier_reached=state.pending_tier if substantive else 0,
+        specificity="concrete" if substantive else "vague",
+        # Only an actual refusal counts as guarded.
+        candor_signal="guarded" if deflected else "neutral",
+        areas_touched=[area] if area else [],
+        note="local-assessment",
+    )
 
 
 class InterviewEngine:
@@ -49,14 +174,20 @@ class InterviewEngine:
         llm: LLMClient | None = None,
         max_turns: int = 14,
         temperature: float = 0.4,
+        strategy: InterviewStrategy | None = None,
     ) -> None:
         self._llm = llm
         self._max_turns = max_turns
         self._temperature = temperature
+        self._strategy = strategy or InterviewStrategy(max_turns=max_turns)
 
     @property
     def is_live(self) -> bool:
         return self._llm is not None
+
+    @property
+    def strategy(self) -> InterviewStrategy:
+        return self._strategy
 
     def next_turn(
         self,
@@ -65,100 +196,98 @@ class InterviewEngine:
         history: list[Message],
         last_answer: str | None,
     ) -> InterviewerTurn:
-        if self._llm is not None:
-            return self._live_turn(state=state, history=history, last_answer=last_answer)
-        return self._mock_turn(state=state, last_answer=last_answer)
+        # Fold the previous answer into the state BEFORE deciding, so the decision is
+        # made with it rather than one turn behind. (The driver no longer folds.)
+        assessment: Assessment | None = None
+        if last_answer is not None and state.pending_area is not None:
+            assessment = assess_locally(last_answer, state)
+            state.record_answer(
+                areas_touched=assessment.areas_touched,
+                tier_reached=assessment.tier_reached,
+                got_disclosure=assessment.got_substantive_disclosure,
+                specificity=assessment.specificity,
+                candor_signal=assessment.candor_signal,
+                answer=last_answer,
+            )
 
-    # -- live path ---------------------------------------------------------
+        move = self._strategy.decide(state)
+
+        if self._llm is not None:
+            turn = self._live_turn(state=state, history=history,
+                                   last_answer=last_answer, move=move)
+        else:
+            turn = InterviewerTurn(
+                utterance=_phrase(move, state),
+                assessment=assessment,
+                next_move=NextMove(
+                    hypothesis=move.rationale,
+                    target_area=move.target_area,
+                    tier_targeted=move.target_tier,
+                    technique=move.technique,
+                    reasoning=move.rationale,
+                ),
+                should_close=move.intent is Intent.CLOSE,
+                closing_reason=("coverage_saturated" if move.intent is Intent.CLOSE
+                                else None),
+            )
+
+        if not turn.should_close:
+            state.note_question(move.target_area, move.target_tier)
+        # The assessment has already been folded; do not hand it back for re-folding.
+        turn.assessment = None
+        return turn
+
     def _live_turn(
         self,
         *,
         state: InterviewState,
         history: list[Message],
         last_answer: str | None,
+        move: Move,
     ) -> InterviewerTurn:
         messages = list(history)
-        messages.append(
-            {
-                "role": "user",
-                "content": render_turn_prompt(
+        messages.append({
+            "role": "user",
+            "content": (
+                render_turn_prompt(
                     state_summary=state.summary(),
                     last_answer=last_answer,
                     turn_index=state.turn_count + 1,
-                ),
-            }
-        )
+                )
+                + "\n\n" + _directive(move)
+            ),
+        })
         text = self._llm.complete(
             system=INTERVIEWER_SYSTEM,
             messages=messages,
             max_tokens=800,
             temperature=self._temperature,
         )
-        return parse_turn(text)
-
-    # -- mock path ---------------------------------------------------------
-    def _mock_turn(self, *, state: InterviewState, last_answer: str | None) -> InterviewerTurn:
-        # Assess the previous answer crudely: a non-deflecting answer of some
-        # length counts as a disclosure at the tier we were targeting.
-        assessment: Assessment | None = None
-        step = state.turn_count  # number of interviewer questions already asked
-        if last_answer is not None and step >= 1:
-            prev_area, prev_tier, _ = _MOCK_LADDER[min(step - 1, len(_MOCK_LADDER) - 1)]
-            low_signal = _looks_low_signal(last_answer)
-            substantive = (not low_signal) and len(last_answer.split()) >= 6
-            # Credit the targeted tier only on a genuine disclosure. A vague or
-            # deflecting answer reached nothing, however long it is.
-            assessment = Assessment(
-                got_substantive_disclosure=substantive,
-                tier_reached=prev_tier if substantive else 0,
-                specificity="concrete" if substantive else "vague",
-                candor_signal="guarded" if low_signal else "neutral",
-                areas_touched=[prev_area],
-                note="mock-assessment",
-            )
-
-        # Choose the next scripted question, or close.
-        if step >= len(_MOCK_LADDER) or step >= self._max_turns or state.saturated():
-            return InterviewerTurn(
-                utterance=(
-                    "That's really helpful — thank you. Last thing: is there anything "
-                    "important about how work really gets done here that I didn't ask about?"
-                    if step < len(_MOCK_LADDER) else
-                    "This has been genuinely useful. Thank you for being candid — we're done."
-                ),
-                assessment=assessment,
-                next_move=None,
-                should_close=step >= len(_MOCK_LADDER),
-                closing_reason="coverage_saturated" if state.saturated() else "budget",
-            )
-
-        area, tier, question = _MOCK_LADDER[step]
-        return InterviewerTurn(
-            utterance=question,
-            assessment=assessment,
-            next_move=NextMove(
-                hypothesis=f"probe {area}",
-                target_area=area,
-                tier_targeted=tier,
-                technique="ladder",
-                reasoning="scripted laddering (mock)",
-            ),
-            should_close=False,
-        )
+        turn = parse_turn(text)
+        if move.intent is Intent.CLOSE:
+            turn.should_close = True
+        return turn
 
 
-# Markers of a deflection or a content-free non-answer. Either way, no
-# organizational truth was actually disclosed.
-_LOW_SIGNAL_MARKERS = (
-    # deflections
-    "rather not", "prefer not", "not sure", "can't really say", "no comment",
-    "don't want to get into", "not comfortable", "hard to say",
-    # vague non-answers
-    "mostly fine", "nothing jumps out", "pretty standard", "standard stuff",
-    "nothing really", "can't think of",
-)
-
-
-def _looks_low_signal(answer: str) -> bool:
-    low = answer.lower()
-    return any(m in low for m in _LOW_SIGNAL_MARKERS)
+def _directive(move: Move) -> str:
+    """The strategy's decision, handed to the model as an instruction for this turn."""
+    lines = [
+        "STRATEGIC DIRECTIVE for this turn (chosen from the interview state — follow it):",
+        f"- move: {move.intent.value}",
+        f"- target area: {move.target_area}",
+        f"- target tier: {move.target_tier}",
+        f"- why: {move.rationale}",
+    ]
+    if move.intent is Intent.CONVERT_SPECIFICITY:
+        lines.append("- The last answer was vague. Do NOT move on. Ask for the most "
+                     "recent concrete instance: what happened, and when.")
+    elif move.intent is Intent.DE_ESCALATE:
+        lines.append("- The subject was guarded. Do NOT push. Reassure briefly, drop to "
+                     "a lower-cost topic, and leave the sensitive one for later.")
+    elif move.intent is Intent.SURFACE_CONTRADICTION:
+        lines.append(f"- This appears to conflict with something they said earlier: "
+                     f"\"{move.earlier[:160]}\". Raise it gently and without accusation; "
+                     f"assume it is a clarification, not a lie.")
+    elif move.intent is Intent.CLOSE:
+        lines.append("- Close the interview warmly. Set should_close to true.")
+    return "\n".join(lines)

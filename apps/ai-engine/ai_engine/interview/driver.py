@@ -101,17 +101,12 @@ class InterviewDriver:
             self._close("budget")
             return None
 
+        # The engine folds the previous answer into the state itself, before choosing
+        # the next move — it has to, or the decision would always be one turn behind
+        # the answer it is reacting to. Folding again here would double-count.
         turn: InterviewerTurn = self._engine.next_turn(
             state=self._state, history=self._history, last_answer=self._last_answer
         )
-
-        # Fold the engine's assessment of the PREVIOUS answer into coverage.
-        if turn.assessment is not None:
-            self._state.record_answer(
-                areas_touched=turn.assessment.areas_touched,
-                tier_reached=turn.assessment.tier_reached,
-                got_disclosure=turn.assessment.got_substantive_disclosure,
-            )
 
         segment = self._transcript.append(Speaker.INTERVIEWER, turn.utterance)
         self._history.append({"role": "assistant", "content": turn.utterance})

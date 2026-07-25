@@ -118,6 +118,38 @@ class HardenedGroundingTest(unittest.TestCase):
         claim, reason = ground_proposal(prop, t)
         self.assertEqual(reason, "grounded")
 
+    def test_partial_word_match_is_rejected(self):
+        # Found by the fuzz audit: without word-boundary guards, the fabricated
+        # quote "vendor I" matched "vendor Ignores", grounding a claim on half a
+        # word. A quote must align to whole words in the source.
+        t = _transcript_with("I avoid the supplier portal because that vendor ignores each deadline.")
+        prop = RawProposal("observation", "fabricated", quote="vendor I", tier=2)
+        claim, reason = ground_proposal(prop, t)
+        self.assertIsNone(claim)
+        self.assertEqual(reason, "quote_not_found")
+
+    def test_word_fragment_of_a_real_word_is_rejected(self):
+        t = _transcript_with("I keep a private spreadsheet for the weekly numbers.")
+        for fragment in ("spread", "sheet", "priva"):
+            with self.subTest(fragment=fragment):
+                claim, _ = ground_proposal(
+                    RawProposal("observation", "x", quote=fragment, tier=2), t)
+                self.assertIsNone(claim, f"{fragment!r} should not ground")
+
+    def test_boundary_guard_does_not_reject_punctuation_led_quotes(self):
+        # The guard must not over-constrain: a quote starting with punctuation is
+        # still legitimate and must ground.
+        t = _transcript_with("It is fine — pretty standard stuff, nothing new.")
+        claim, reason = ground_proposal(
+            RawProposal("observation", "x", quote="— pretty standard", tier=2), t)
+        self.assertIsNotNone(claim, reason)
+
+    def test_hyphenated_word_part_still_grounds(self):
+        t = _transcript_with("My week is repetitive rules-based copying between systems.")
+        claim, reason = ground_proposal(
+            RawProposal("observation", "x", quote="rules-based copying", tier=2), t)
+        self.assertIsNotNone(claim, reason)
+
     def test_paraphrase_still_rejected(self):
         # The filter must not go soft: changing the WORDS is still confabulation.
         t = _transcript_with("I keep a private spreadsheet.")

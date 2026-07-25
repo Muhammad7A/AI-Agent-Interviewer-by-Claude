@@ -31,3 +31,9 @@ jobs:
       # Exits non-zero if any safety or capability gate fails, failing the build.
       - name: Run evaluation gate
         run: python -m ai_engine.eval
+
+      # Property-based audit of the two gates the product's credibility rests on:
+      # grounding (is the quote real?) and entailment (does it support the claim?).
+      # Exits non-zero on any false accept, false reject, integrity or crash finding.
+      - name: Run safety-gate fuzz audit
+        run: python -m ai_engine.fuzz --cases 800 --org-size 8

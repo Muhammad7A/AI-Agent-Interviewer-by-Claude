@@ -58,6 +58,32 @@ def _canon(text: str) -> str:
     return "".join(_canon_char(c) for c in text)
 
 
+def _word_char(ch: str) -> bool:
+    return ch.isalnum() or ch == "_"
+
+
+def _guard(pattern: str, first: str, last: str) -> str:
+    """Wrap ``pattern`` so it cannot match the middle of a word.
+
+    Without this, a fabricated quote can match a *word fragment*: "vendor I" was
+    accepted against "vendor **i**gnores each deadline", producing evidence that
+    pointed at half a word. Found by the fuzz audit.
+
+    The guards are applied only on sides where the needle itself starts/ends with a
+    word character — a quote that legitimately begins with punctuation ("— pretty")
+    must not be over-constrained.
+    """
+    pre = r"(?<!\w)" if first and _word_char(first) else ""
+    post = r"(?!\w)" if last and _word_char(last) else ""
+    return f"{pre}{pattern}{post}"
+
+
+def _search(literal_or_pattern: str, haystack: str, *, first: str, last: str,
+            escape: bool = True) -> re.Match[str] | None:
+    body = re.escape(literal_or_pattern) if escape else literal_or_pattern
+    return re.search(_guard(body, first, last), haystack)
+
+
 def _locate(haystack: str, needle: str) -> tuple[int, int, str] | None:
     """Return (start, end, match_kind) of ``needle`` within ``haystack``, or None.
 
@@ -67,15 +93,18 @@ def _locate(haystack: str, needle: str) -> tuple[int, int, str] | None:
     and trailing punctuation — because a real model routinely re-emits a true quote
     with curly quotes or an em-dash, and rejecting that true quote would punish
     honesty. We do NOT tolerate paraphrase: change a word and it will not ground.
+
+    Every path is word-boundary guarded, so a quote must align to whole words in the
+    source — evidence that points at a fragment of a different word is not evidence.
     """
     needle = needle.strip()
     if not needle:
         return None
 
     # 1. Exact substring — the fast, unambiguous path.
-    idx = haystack.find(needle)
-    if idx >= 0:
-        return idx, idx + len(needle), "exact"
+    match = _search(needle, haystack, first=needle[0], last=needle[-1])
+    if match:
+        return match.start(), match.end(), "exact"
 
     # Canonicalize both (length-preserving, so offsets still map to the original).
     chay, cneedle = _canon(haystack), _canon(needle)
@@ -83,16 +112,18 @@ def _locate(haystack: str, needle: str) -> tuple[int, int, str] | None:
     # 2. Same words after unicode/case normalization, ignoring trailing punctuation.
     cneedle_core = cneedle.rstrip(" .,;:!?\"'-")
     for probe in (cneedle, cneedle_core):
-        if probe:
-            j = chay.find(probe)
-            if j >= 0:
-                return j, j + len(probe), "normalized"
+        if not probe:
+            continue
+        match = _search(probe, chay, first=probe[0], last=probe[-1])
+        if match:
+            return match.start(), match.end(), "normalized"
 
     # 3. Same words but a different amount of whitespace between them.
     tokens = [t for t in re.split(r"\s+", cneedle_core or cneedle) if t]
     if tokens:
         pattern = r"\s+".join(re.escape(t) for t in tokens)
-        match = re.search(pattern, chay)
+        match = _search(pattern, chay, first=tokens[0][0], last=tokens[-1][-1],
+                        escape=False)
         if match:
             return match.start(), match.end(), "flexible"
     return None

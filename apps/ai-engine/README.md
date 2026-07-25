@@ -223,6 +223,55 @@ meaningful offline number. The weights are deliberately **not** tuned to minimis
 mock ECE, because that would be fitting to a fiction; real calibration needs real
 outcomes (research program Q4).
 
+### Safety-gate fuzz audit (property-based adversarial testing)
+
+The product's credibility rests on two gates — **grounding** (is the quote real?) and
+**entailment** (does the quote support the claim?) — and each can fail in two
+opposite directions with very different costs:
+
+- **False accept** — a fabrication is admitted. The dangerous direction (F4/F5).
+- **False reject** — a true quote is refused. Silently destroys recall and would
+  make the eval report a worse system than we have.
+
+Example-based tests only check the cases an author thought of. `ai_engine/fuzz/`
+generates thousands of **near-misses** and asserts properties over all of them:
+
+```bash
+python3 -m ai_engine.fuzz                       # audit; exit 0 only if clean
+python3 -m ai_engine.fuzz --cases 1500 --seed 4 --verbose
+```
+
+The rigour comes from knowing the expected answer *independently of the code under
+test*: a **cosmetic** mutation (curly quotes, dashes, case, whitespace, trailing
+punctuation) keeps the words, so it MUST still ground; a **semantic** mutation
+(substitute, delete, insert, negate, swap, renumber) changes them, so it MUST NOT.
+Semantic cases are gated by a word-level precondition and *skipped* rather than
+asserted if a mutation coincidentally still appears in the source. Properties
+checked: cosmetic accept, semantic reject, interviewer-quote reject, **evidence
+offset integrity** (do the char offsets point at the words actually matched?),
+entailment accept-faithful, entailment reject-escalation (every severe/legal stem),
+and never-crash on hostile input (empty, unicode, 5 KB, injection-looking strings).
+
+A **meta-test** replaces grounding with a gate that accepts everything and asserts
+the audit catches it — otherwise a green audit would mean nothing.
+
+#### What the audit found
+
+A real bug in the shipped grounding filter, on seed 4 of a deep sweep:
+
+> The fabricated quote **`"vendor I"`** was **accepted** against the real text
+> *"…that vendor **i**gnores each deadline"* — the flexible matcher had no
+> word-boundary anchors, so it could match **half a word**, producing evidence that
+> pointed at a fragment of a different word.
+
+Every match path is now word-boundary guarded (applied only on sides where the
+needle itself starts/ends with a word character, so punctuation-led quotes like
+`"— pretty standard"` are not over-constrained). Verified across **12 seeds and
+~60,000 property checks**, with the specific case pinned as a regression test. The
+audit also caught one bug in *its own oracle* first — a character-level integrity
+comparison that wrongly flagged 142 correct whitespace-tolerant matches — a reminder
+that the oracle needs as much care as the code.
+
 ### Synthetic organization generator (the testbed)
 
 Hand-written personas prove a pipeline *runs*; they cannot make an evaluation

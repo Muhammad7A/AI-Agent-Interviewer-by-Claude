@@ -20,6 +20,7 @@ ontora-interview = "ai_engine.cli:main"
 ontora-eval = "ai_engine.eval.__main__:main"
 ontora-aggregate = "ai_engine.aggregation.__main__:main"
 ontora-calibrate = "ai_engine.confidence.__main__:main"
+ontora-synth = "ai_engine.synthetic.__main__:main"
 
 [tool.setuptools]
 packages = [
@@ -35,4 +36,5 @@ packages = [
   "ai_engine.eval",
   "ai_engine.aggregation",
   "ai_engine.confidence",
+  "ai_engine.synthetic",
 ]

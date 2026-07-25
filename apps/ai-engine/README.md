@@ -223,6 +223,55 @@ meaningful offline number. The weights are deliberately **not** tuned to minimis
 mock ECE, because that would be fitting to a fiction; real calibration needs real
 outcomes (research program Q4).
 
+### Synthetic organization generator (the testbed)
+
+Hand-written personas prove a pipeline *runs*; they cannot make an evaluation
+statistically meaningful. Six people is an anecdote, and a fixture hand-tuned until
+it passes measures the fixture. `ai_engine/synthetic/` generates organizations to
+order, with ground truth known by construction and full reproducibility from a seed:
+
+```bash
+python3 -m ai_engine.synthetic --size 20 --seed 3 --verbose   # inspect an org
+python3 -m ai_engine.confidence --generate 24 --seed 5        # study one
+```
+
+Controllable: **size**, **candor mix** (guarded employees withhold their Tier 2+
+beliefs, so this directly gates how much truth is reachable), **corroboration
+depth**, **contradiction rate**, **bias rate**, and two adversarial dials described
+below.
+
+Generated text has to survive four real downstream mechanisms, so the topic
+templates are engineered to satisfy them *systematically* rather than by hand-tuning:
+elicitation (keywords hit the interviewer's question ladder), clustering (a shared
+core guarantees vocabulary overlap), agreement detection, and contradiction
+detection. **Tests assert this vocabulary contract** — including that no two
+distinct topics accidentally merge, and that every planted contradiction is actually
+*detected*. Both classes of bug are silent: they would leave the benchmark reporting
+a number while measuring nothing.
+
+#### What the testbed found
+
+Building it immediately produced two results that hand-written fixtures could not:
+
+1. **A real bug in the generator.** All "unfounded attribution" beliefs initially
+   shared one template, so independent bias-holders clustered and *corroborated each
+   other* — manufacturing **0.92 confidence on false findings**. Bias is now
+   single-source by construction (distinct targets), guarded by a test.
+2. **A real limitation of the confidence scorer**, now reproducible on demand:
+
+| regime | AUC |
+|---|---|
+| majority is right (`minority_correct_rate=0`) | **0.73** — works |
+| majority is wrong (`minority_correct_rate=1`) | **0.17** — *inverted* |
+
+Corroboration-weighted confidence is only valid while **errors are independent**.
+Where a wrong majority outvotes a correct minority, or a shared misconception
+corroborates itself (`correlated_bias_rate`), the signal **reverses** — the scorer
+becomes confidently wrong. Both regimes are pinned by tests so neither can regress,
+and the study report prints a loud warning whenever AUC falls below chance. This is a
+documented limitation, not a defect: a testbed that can only flatter the scorer is
+not a testbed.
+
 ### Evaluation harness (the system's conscience)
 
 The only technical moat is knowing whether the output is *true*, not just fluent

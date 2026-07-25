@@ -152,7 +152,8 @@ def ground_proposal(
         if found:
             start, end, kind = found
             evidence = GroundedEvidence(
-                ref=EvidenceRef(segment_id=seg.id, start=start, end=end),
+                ref=EvidenceRef(segment_id=seg.id, start=start, end=end,
+                                transcript_id=transcript.id),
                 quote=quote,
                 match_kind=kind,
             )

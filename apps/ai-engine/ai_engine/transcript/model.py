@@ -59,13 +59,27 @@ class TranscriptSegment:
 
 @dataclass(frozen=True)
 class EvidenceRef:
-    """A resolvable pointer into an immutable segment. Provenance's atom."""
+    """A resolvable pointer into an immutable segment. Provenance's atom.
+
+    Carries ``transcript_id`` because a reference that does not name its own
+    transcript is not self-resolving: once findings from many interviews are
+    aggregated, resolving such a ref against the wrong person's transcript would
+    silently yield *someone else's words* as evidence. The ratified contract in
+    ``packages/contracts`` always specified this; the Python model had drifted from
+    it, and the drift was compensated for by carrying the transcript id alongside.
+    """
 
     segment_id: str
     start: int
     end: int
+    transcript_id: str = ""
 
     def resolve(self, transcript: "Transcript") -> str:
+        if self.transcript_id and transcript.id != self.transcript_id:
+            raise ValueError(
+                f"EvidenceRef belongs to transcript {self.transcript_id}, "
+                f"cannot resolve against {transcript.id}"
+            )
         return transcript.segment(self.segment_id).span_text(self.start, self.end)
 
 

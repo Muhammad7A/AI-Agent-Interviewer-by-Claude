@@ -7,6 +7,7 @@ from .model import (
     AggregatedFinding,
     AggregationResult,
     Contradiction,
+    MemberRelation,
     ParticipantFinding,
     Relation,
 )
@@ -46,16 +47,19 @@ def _cluster(findings: list[ParticipantFinding]) -> list[list[ParticipantFinding
     return topics
 
 
-def _find_contradictions(
+def _relate_members(
     members: list[ParticipantFinding], checker: RelationChecker
-) -> list[Contradiction]:
+) -> tuple[list[MemberRelation], list[Contradiction]]:
+    """Classify every pair once; keep the full map and the disagreements."""
+    relations: list[MemberRelation] = []
     contradictions: list[Contradiction] = []
     for i in range(len(members)):
         for j in range(i + 1, len(members)):
             a, b = members[i], members[j]
             if a.participant_id == b.participant_id:
-                continue  # a person doesn't contradict themselves here
+                continue  # a person doesn't corroborate or contradict themselves
             relation = checker.classify(a.statement, b.statement)
+            relations.append(MemberRelation(i=i, j=j, relation=relation))
             if relation in (Relation.CONFLICT, Relation.VARIATION):
                 contradictions.append(
                     Contradiction(
@@ -66,7 +70,7 @@ def _find_contradictions(
                         relation=relation,
                     )
                 )
-    return contradictions
+    return relations, contradictions
 
 
 def _dominant_type(members: list[ParticipantFinding]) -> str:
@@ -83,16 +87,19 @@ def aggregate(
 ) -> AggregationResult:
     checker = checker or make_relation_checker(None)
     clusters = _cluster(findings)
-    aggregated = [
-        AggregatedFinding(
-            topic_id=f"topic-{i + 1}",
-            claim_type=_dominant_type(members),
-            label=_label(members),
-            members=members,
-            contradictions=_find_contradictions(members, checker),
+    aggregated: list[AggregatedFinding] = []
+    for i, members in enumerate(clusters):
+        relations, contradictions = _relate_members(members, checker)
+        aggregated.append(
+            AggregatedFinding(
+                topic_id=f"topic-{i + 1}",
+                claim_type=_dominant_type(members),
+                label=_label(members),
+                members=members,
+                contradictions=contradictions,
+                relations=relations,
+            )
         )
-        for i, members in enumerate(clusters)
-    ]
     # Most-corroborated and contested topics first.
     aggregated.sort(key=lambda f: (f.has_conflict, f.participant_count), reverse=True)
     return AggregationResult(findings=aggregated)

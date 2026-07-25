@@ -35,8 +35,11 @@ _NEG = (
     "broken", "fails", "rarely", "hardly", "stopped", "won't", "can't",
 )
 _POS = (
-    "always", "everyone", "everybody", "up to date", "current", "reliable",
-    "follow", "updated", "correct", "consistently", "exactly as", "on time",
+    # Deliberately excludes ambiguous stems like "follow"/"updated": those fire
+    # inside their own negation ("nobody follows"), which would read a denial as
+    # an affirmation and hide a real contradiction.
+    "always", "everyone", "everybody", "up to date", "reliable",
+    "consistently", "exactly as", "on time", "by the book",
 )
 
 

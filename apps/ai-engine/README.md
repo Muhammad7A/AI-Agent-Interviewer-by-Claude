@@ -175,6 +175,54 @@ approval bottleneck, all three) and **conflict** on another (does anyone follow 
 official process? — one says yes, one says no). In production you aggregate
 *validated* findings; the demo aggregates tagged proposals for a runnable example.
 
+### Confidence + calibration (a number that had to earn the right to exist)
+
+Confidence was deliberately absent until aggregation existed, because a confidence
+score derived from nothing is the exact failure the eval harness is meant to catch.
+Now there are **real structural signals**, so `ai_engine/confidence/` derives one —
+and then *measures whether it means anything*.
+
+Confidence accumulates in **log-odds space** from observable signals only:
+
+| signal | why it's legitimate |
+|---|---|
+| independent corroboration | people who *agree with this specific finding* (diminishing returns) |
+| direct contradiction | if two people flatly disagree, at most one is right — and the lone dissenter is penalised more than the majority side |
+| disclosure tier | costly, self-implicating admissions are rarely invented by the subject |
+| evidence match exactness | interpretive distance from the immutable source is a small risk signal |
+
+It is **never** derived from fluency, verbosity, or the model's own narration
+(Constitution Art. III), and every score decomposes into named contributions, so
+"why 0.89?" always has an answer:
+
+```
+confidence 0.89 (high)
+  +0.20  prior: passed grounding + entailment (p=0.55)
+  +1.43  corroboration: 3 independent participant(s) assert this (Ben, Cleo agree)
+  +0.35  disclosure_tier: tier 3 (costly to disclose)
+  +0.10  evidence_match: quote matched source: exact
+```
+
+**Then it gets graded.** The calibration study interviews a study org that contains
+*deliberately mistaken beliefs* — so there are real false findings to catch — and
+measures **AUC** (does confidence rank truth above falsehood?), **Brier**, and
+**ECE** with reliability bins.
+
+```bash
+python3 -m ai_engine.confidence           # the calibration study
+python3 -m ai_engine.confidence --write   # also writes calibration_study.md
+```
+
+Current offline result: **AUC 1.00** — all three false findings score below all
+fifteen true ones, with the lone dissenter's mistaken belief lowest at 0.20.
+
+**The honest caveat, stated in the report itself:** the share of false findings in
+the study org is a *design choice*, so **ECE is not a verdict** on the scorer — it
+reflects an invented base rate. AUC is base-rate independent and therefore the
+meaningful offline number. The weights are deliberately **not** tuned to minimise
+mock ECE, because that would be fitting to a fiction; real calibration needs real
+outcomes (research program Q4).
+
 ### Evaluation harness (the system's conscience)
 
 The only technical moat is knowing whether the output is *true*, not just fluent

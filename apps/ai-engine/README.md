@@ -81,6 +81,60 @@ python3 -m ai_engine.cli --simulated     # interviewer AND persona now use the m
 The LLM sits behind a port (`ai_engine/llm/`); switching providers is an
 infrastructure-only change. No domain/application code names a model or SDK.
 
+### Durable evidence + the production posture (prerequisites for any app)
+
+Two gaps that a CLI tolerates and a deployed app cannot.
+
+**1. Evidence used to die at process exit.** The architecture claims every finding
+resolves to an immutable source, but the transcript lived only in memory and the
+event log recorded `chars=len(answer)` — never the words. So after the process
+exited, every `EvidenceRef` in every report pointed at a segment that no longer
+existed: quotes couldn't be re-verified, the safety gates couldn't be re-run, and a
+consultant couldn't answer *"show me why you believe this"* the next day. An
+evidence-first system with no durable evidence.
+
+`persistence/transcript_store.py` stores transcripts write-once (a finalized
+transcript is immutable, so overwriting is refused) and rehydrates them exactly —
+ids, order, and text byte-for-byte, because offsets are character positions and a
+single normalisation would silently shift every quote. The invariant its tests
+assert directly:
+
+> a rehydrated transcript resolves every `EvidenceRef` to exactly the same text.
+
+Demonstrated end-to-end: one process runs the interview and stores it; a **fresh
+process** loads it, re-runs both safety gates on the stored testimony, and resolves
+evidence to the original span.
+
+**2. The silent mock was a production liability.** With no API key every component
+fell back to *scripted* behaviour — a misconfigured deployment would have served
+fabricated interviews to real employees and logged them as genuine testimony. Add a
+storage key that isn't set and verbatim attributable testimony lands on disk in
+plaintext. Both are right for local work and unacceptable in production:
+
+```bash
+ONTORA_ENV=production python3 -m ai_engine.cli     # refuses, listing every problem
+```
+```
+ConfigurationError: ONTORA_ENV=production, but this configuration is not safe to
+serve real interviews:
+  - no ANTHROPIC_API_KEY: cognition would silently fall back to the scripted mock
+    interviewer, serving fabricated interviews to real people and recording them
+    as genuine testimony
+  - no ONTORA_STORE_KEY: verbatim, attributable employee testimony would be
+    written to disk in plaintext
+```
+
+Every run now prints its posture — `env=dev cognition=MOCK storage-at-rest=PLAINTEXT`
+— so nobody has to infer it.
+
+**On encryption:** no cipher is hand-rolled here. `persistence/crypto.py` defines a
+port and adapts `cryptography`'s Fernet (authenticated, so tampering is detected)
+via the `secure` extra; `NullCipher` is plaintext, reports
+`protects_at_rest = False`, and production refuses it. A *configured* key that cannot
+actually encrypt raises rather than silently downgrading — an installed-but-broken
+crypto library is the dangerous case, since it reads as "available" right up to the
+first write.
+
 ### Evidence tagging (interview → grounded findings)
 
 After the interview, the loop tags the transcript into **evidence-bound claim

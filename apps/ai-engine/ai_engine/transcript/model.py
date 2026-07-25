@@ -115,6 +115,37 @@ class Transcript:
         self._segments.append(segment)
         return segment
 
+    @classmethod
+    def rehydrate(
+        cls,
+        *,
+        id: str,
+        engagement_id: str,
+        tenant_id: str,
+        interview_id: str,
+        created_at: datetime,
+        finalized: bool,
+        segments: list[TranscriptSegment],
+    ) -> "Transcript":
+        """Reconstruct a stored transcript exactly, preserving ids and offsets.
+
+        Distinct from :meth:`append`, which mints new ids: reconstruction must
+        reproduce the original segment ids and text byte-for-byte, or every
+        ``EvidenceRef`` taken against the original would resolve to different words —
+        which is the whole reason the transcript is stored in the first place.
+        """
+        transcript = cls(
+            id=id,
+            engagement_id=engagement_id,
+            tenant_id=tenant_id,
+            interview_id=interview_id,
+            created_at=created_at,
+            finalized=False,  # set last, so the segments can be installed
+        )
+        transcript._segments = list(segments)
+        transcript.finalized = finalized
+        return transcript
+
     def finalize(self) -> None:
         self.finalized = True
 

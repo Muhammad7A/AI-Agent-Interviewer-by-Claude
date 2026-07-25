@@ -16,6 +16,7 @@ from .config import get_llm_client, load_settings
 from .interview.engine import InterviewEngine
 from .interview.session import DEFAULT_OBJECTIVE, run_interview
 from .persistence.event_log import EventLog
+from .persistence.transcript_store import TranscriptStore
 from .subjects.human import HumanInterviewee
 from .subjects.simulated import CANDOR_LEVELS, SimulatedInterviewee, default_persona
 from .transcript.model import Transcript
@@ -44,11 +45,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     settings = load_settings()
+    # Refuse to serve real interviews from an unsafe configuration (mock cognition
+    # or plaintext testimony). No-op in dev.
+    settings.assert_deployable()
     max_turns = args.max_turns or settings.max_turns
     llm = get_llm_client(settings)
 
-    mode = "LIVE model" if llm is not None else "MOCK (no ANTHROPIC_API_KEY)"
-    print(f"# Ontora interview loop — interviewer: {mode}")
+    print(f"# Ontora interview loop — {settings.posture_banner()}")
+    if not settings.is_production and llm is None:
+        print("#   ⚠ mock cognition: answers are scripted, not a real interview")
 
     engine = InterviewEngine(llm=llm, max_turns=max_turns, temperature=settings.temperature)
 
@@ -86,6 +91,14 @@ def main(argv: list[str] | None = None) -> int:
     if event_log is not None:
         print(f"\nTestimony log: {event_log.path}")
     print(f"Transcript segments: {len(result.transcript.segments)}")
+
+    # Persist the transcript, so every EvidenceRef in the report stays resolvable
+    # after this process exits. Without this the provenance chain dies at exit.
+    if not args.no_log:
+        store = TranscriptStore(settings.data_dir, settings.cipher())
+        path = store.save(result.transcript)
+        print(f"Transcript stored: {path}"
+              + ("" if store.encrypted else "  ⚠ PLAINTEXT (dev only)"))
 
     if not args.no_tag:
         claims = _tag(result.transcript, llm, settings, args)

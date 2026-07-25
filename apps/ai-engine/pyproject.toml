@@ -14,6 +14,8 @@ dependencies = []
 # talk to a live model:  pip install -e '.[live]'
 [project.optional-dependencies]
 live = ["anthropic>=0.39"]
+# Encryption at rest for stored testimony. Required in production.
+secure = ["cryptography>=42"]
 
 [project.scripts]
 ontora-interview = "ai_engine.cli:main"

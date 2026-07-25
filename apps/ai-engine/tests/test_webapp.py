@@ -227,6 +227,26 @@ class WorkspaceFlowTest(unittest.TestCase):
 
 
 @unittest.skipUnless(_HAS_CLIENT, "requires fastapi and httpx")
+class LazyExportTest(unittest.TestCase):
+    """The counterpart to the zero-dependency import contract.
+
+    ``ai_engine.webapp`` resolves ``create_app`` lazily so the package imports without
+    FastAPI. That must not break the public name.
+    """
+
+    def test_create_app_is_reachable_from_the_package(self):
+        from ai_engine.webapp import create_app
+
+        self.assertTrue(callable(create_app))
+
+    def test_unknown_attribute_still_raises_attribute_error(self):
+        import ai_engine.webapp as pkg
+
+        with self.assertRaises(AttributeError):
+            pkg.no_such_thing
+
+
+@unittest.skipUnless(_HAS_CLIENT, "requires fastapi and httpx")
 class ProductionGuardTest(unittest.TestCase):
     def test_app_refuses_to_start_in_unsafe_production(self):
         from ai_engine.config import ConfigurationError

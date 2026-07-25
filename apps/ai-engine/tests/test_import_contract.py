@@ -39,9 +39,11 @@ CORE_MODULES = (
     "ai_engine.confidence.scorer",
     "ai_engine.synthetic.generator",
     "ai_engine.fuzz.runner",
-    # The web package's non-web parts must not drag FastAPI in.
+    "ai_engine.persistence.invitations",
+    # The web packages' non-web parts must not drag FastAPI in.
     "ai_engine.webapp",
     "ai_engine.webapp.ledger",
+    "ai_engine.employee",
 )
 
 _BLOCKED = ("fastapi", "starlette", "uvicorn", "httpx", "pydantic", "multipart",

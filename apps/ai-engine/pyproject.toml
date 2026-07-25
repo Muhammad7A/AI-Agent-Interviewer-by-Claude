@@ -27,6 +27,7 @@ ontora-calibrate = "ai_engine.confidence.__main__:main"
 ontora-synth = "ai_engine.synthetic.__main__:main"
 ontora-fuzz = "ai_engine.fuzz.__main__:main"
 ontora-web = "ai_engine.webapp.__main__:main"
+ontora-interview-surface = "ai_engine.employee.__main__:main"
 
 [tool.setuptools]
 packages = [
@@ -46,4 +47,5 @@ packages = [
   "ai_engine.fuzz",
   "ai_engine.privacy",
   "ai_engine.webapp",
+  "ai_engine.employee",
 ]

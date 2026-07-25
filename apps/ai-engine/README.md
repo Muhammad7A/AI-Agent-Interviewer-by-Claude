@@ -81,6 +81,54 @@ python3 -m ai_engine.cli --simulated     # interviewer AND persona now use the m
 The LLM sits behind a port (`ai_engine/llm/`); switching providers is an
 infrastructure-only change. No domain/application code names a model or SDK.
 
+### The employee interview surface (a separate app, on purpose)
+
+Until this existed, the interview ran *inside the consultant workspace* — which means
+the consultant was present. That destroys the candour the whole product depends on
+measuring (F1): the experiment design requires the employee **alone** with the tool,
+employer-blinded.
+
+```bash
+python3 -m ai_engine.webapp     # consultant workspace, port 8000
+python3 -m ai_engine.employee   # interview surface,   port 8100
+```
+
+It is a **different ASGI application**, not extra routes on the workspace. That is the
+whole point: there is no path from here to a transcript list, a review queue, a report,
+or anyone else's interview, because those routes *do not exist in this app*. A boundary
+enforced by absence cannot be defeated by a misconfigured guard. Verified live:
+
+```
+/              -> HTTP 404      /invitations   -> HTTP 404
+/engagement    -> HTTP 404      /transcripts   -> HTTP 404
+```
+
+**The participant is never asked who they are.** The consultant creates an invitation,
+and the pseudonym is assigned *there*; the interview surface has **zero input fields**
+besides the answer box (asserted by a test). Identity enters the system once, on the
+consultant's side, and is never collected from the person whose candour depends on its
+absence. Access is an unguessable `secrets.token_urlsafe` token — not an interview id,
+which would let one link enumerate other people's interviews.
+
+**The confidentiality statement is the first thing shown**, because in the candor
+experiment it *is* the treatment being measured. Every promise it makes is one the code
+enforces — pseudonymisation, aggregate-only employer release, k-anonymity, and discard
+on withdrawal:
+
+> - Your name is not attached to your answers.
+> - Your employer does not see your answers — they receive a summary across everyone
+>   interviewed, with no names and no quotes.
+> - A topic is only reported if several people raise it.
+> - You can stop at any time, and what you have said is discarded.
+
+That last one is real, not a form of words. In-flight interviews are held **in memory
+only** — an interview that was never submitted has not been consented to, so it is never
+written to disk. Losing it on restart is the correct failure mode. A test withdraws
+mid-interview and then greps the entire data directory to prove the words are nowhere.
+
+Unknown, completed and withdrawn tokens all return the **same** page, so a probe cannot
+learn which tokens exist by comparing responses.
+
 ### The consultant workspace (web app)
 
 The MVP loop as a local web app — **consultant-only**, on purpose. The employer never

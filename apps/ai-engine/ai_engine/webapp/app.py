@@ -29,6 +29,7 @@ from ..interview.driver import InterviewDriver
 from ..interview.engine import InterviewEngine
 from ..interview.session import DEFAULT_OBJECTIVE
 from ..persistence.event_log import EventLog
+from ..persistence.invitations import InvitationStore
 from ..persistence.transcript_store import TranscriptNotFound, TranscriptStore
 from ..privacy import Pseudonymizer, ReleasePolicy, release, render_release_report
 from ..report.generator import render_markdown_report
@@ -118,6 +119,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ]
         return HTMLResponse(views.dashboard(
             interviews=interviews, live=live, posture=posture, warn=warn))
+
+    # -- invitations -------------------------------------------------------
+    @app.post("/invitations/new")
+    def invite(request: Request, participant: str = Form(...),
+               base_url: str = Form("http://127.0.0.1:8100")) -> RedirectResponse:
+        """Create an invitation for the employee surface.
+
+        The pseudonym is assigned here, on the consultant's side, so the interview
+        surface never asks the participant for a name — there is no field for it.
+        """
+        w = ws(request)
+        alias = w.pseudonymizer.pseudonym(participant.strip() or "unknown")
+        InvitationStore(w.settings.data_dir).create(pseudonym=alias)
+        return RedirectResponse("/invitations", status_code=303)
+
+    @app.get("/invitations", response_class=HTMLResponse)
+    def invitations(request: Request) -> HTMLResponse:
+        w = ws(request)
+        posture, warn = w.posture()
+        items = [
+            {"token": i.token, "pseudonym": i.pseudonym, "status": i.status,
+             "transcript_id": i.transcript_id or ""}
+            for i in InvitationStore(w.settings.data_dir).list_all()
+        ]
+        return HTMLResponse(views.invitations(
+            items=items, posture=posture, warn=warn))
 
     # -- interview ---------------------------------------------------------
     @app.post("/interviews/new")

@@ -71,8 +71,49 @@ def layout(title: str, body: str, *, posture: str = "", warn: bool = False) -> s
     )
 
 
+def invitations(*, items: list[dict], posture: str, warn: bool) -> str:
+    rows = ""
+    for item in items:
+        link = f"/i/{item['token']}"
+        tid = item["transcript_id"]
+        transcript_cell = (
+            f'<a href="/transcripts/{esc(tid)}/review">review</a>' if tid else "—"
+        )
+        rows += (
+            "<tr>"
+            f'<td>{esc(item["pseudonym"])}</td>'
+            f'<td>{esc(item["status"])}</td>'
+            f'<td class="meta">{esc(link)}</td>'
+            f"<td>{transcript_cell}</td>"
+            "</tr>"
+        )
+    table = (f"<table><tr><th>Participant</th><th>Status</th><th>Link path</th>"
+             f"<th>Transcript</th></tr>{rows}</table>"
+             if rows else '<p class="sub">No invitations yet.</p>')
+    body = (
+        "<h1>Invitations</h1>"
+        '<p class="sub">Each link opens the interview surface for one person. The '
+        "participant is never asked for their name — the pseudonym is assigned here.</p>"
+        + _nav("/invitations")
+        + """
+        <form class="inline" method="post" action="/invitations/new">
+          <label>Participant <input type="text" name="participant"
+                 placeholder="name or code (kept on this side only)" required></label>
+          <button class="primary" type="submit">Create invitation</button>
+        </form>
+        """
+        + '<div class="note">Send the link path to the participant on the interview '
+          "surface host (run it with <code>python -m ai_engine.employee</code>, default "
+          "port 8100). Treat the links as secrets: the token is the only access control, "
+          "and it is what keeps one person's interview from being anyone else's.</div>"
+        + table
+    )
+    return layout("Invitations", body, posture=posture, warn=warn)
+
+
 def _nav(current: str = "") -> str:
-    items = [("/", "Interviews"), ("/engagement", "Engagement report")]
+    items = [("/", "Interviews"), ("/invitations", "Invitations"),
+             ("/engagement", "Engagement report")]
     links = " · ".join(
         f'<a href="{esc(href)}">{esc(label)}</a>' if href != current else f"<strong>{esc(label)}</strong>"
         for href, label in items

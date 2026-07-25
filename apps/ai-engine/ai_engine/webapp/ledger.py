@@ -12,9 +12,10 @@ recorded.
 """
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
+
+from ..persistence.event_log import find_log, read_events
 
 
 @dataclass(frozen=True)
@@ -32,24 +33,19 @@ class RecordedVerdict:
         return self.validator_kind == "consultant"
 
 
-def validation_path(data_dir: Path | str, interview_id: str) -> Path:
-    return Path(data_dir) / f"{interview_id}.validation.jsonl"
+def validation_path(data_dir: Path | str, interview_id: str) -> Path | None:
+    return find_log(Path(data_dir), interview_id, "validation")
 
 
-def read_verdicts(data_dir: Path | str, interview_id: str) -> dict[str, RecordedVerdict]:
+def read_verdicts(
+    data_dir: Path | str, interview_id: str, cipher=None
+) -> dict[str, RecordedVerdict]:
     """Current verdict per claim id, folded from the append-only event log."""
     path = validation_path(data_dir, interview_id)
     verdicts: dict[str, RecordedVerdict] = {}
-    if not path.exists():
+    if path is None:
         return verdicts
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            record = json.loads(line)
-        except json.JSONDecodeError:
-            continue  # a partially written line must not break the workspace
+    for record in read_events(path, cipher):
         if record.get("event") != "ClaimValidated":
             continue
         claim_id = record.get("claim_id")

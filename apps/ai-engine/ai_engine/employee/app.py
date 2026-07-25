@@ -120,7 +120,8 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
                                        max_turns=settings.max_turns),
                 transcript=transcript,
                 objective=DEFAULT_OBJECTIVE,
-                event_log=EventLog(settings.data_dir, transcript.id, layer="testimony"),
+                event_log=EventLog(settings.data_dir, transcript.id, layer="testimony",
+                                cipher=settings.cipher()),
                 max_turns=settings.max_turns,
             )
             session = LiveSession(driver=driver)

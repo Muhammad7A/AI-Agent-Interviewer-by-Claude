@@ -104,7 +104,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             except Exception:
                 continue
             tagging = _tag(transcript, w.settings)
-            verdicts = read_verdicts(w.settings.data_dir, tid)
+            verdicts = read_verdicts(w.settings.data_dir, tid, w.settings.cipher())
             interviews.append({
                 "id": tid,
                 "participant": transcript.interview_id or "—",
@@ -161,7 +161,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             engine=InterviewEngine(llm=llm, max_turns=w.settings.max_turns),
             transcript=transcript,
             objective=DEFAULT_OBJECTIVE,
-            event_log=EventLog(w.settings.data_dir, transcript.id, layer="testimony"),
+            event_log=EventLog(w.settings.data_dir, transcript.id, layer="testimony",
+                               cipher=w.settings.cipher()),
             max_turns=w.settings.max_turns,
         )
         subject = None
@@ -259,7 +260,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                               text="No stored transcript with that id.",
                                               posture=posture, warn=warn), status_code=404)
         tagging = _tag(transcript, w.settings)
-        verdicts = read_verdicts(w.settings.data_dir, transcript_id)
+        verdicts = read_verdicts(w.settings.data_dir, transcript_id, w.settings.cipher())
         items = []
         for claim in tagging.claims:
             ev = claim.evidence[0]
@@ -300,7 +301,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         gate = ValidationGate(_validator(),
                               EventLog(w.settings.data_dir, transcript_id,
-                                       layer="validation"))
+                                       layer="validation", cipher=w.settings.cipher()))
         try:
             chosen = Verdict(verdict)
         except ValueError:
@@ -323,7 +324,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         from ..validation.model import ValidationDecision
 
         tagging = _tag(transcript, w.settings)
-        verdicts = read_verdicts(w.settings.data_dir, transcript.id)
+        verdicts = read_verdicts(w.settings.data_dir, transcript.id, w.settings.cipher())
         findings: list[ValidatedFinding] = []
         for claim in tagging.claims:
             recorded = verdicts.get(claim.id)

@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
         subject = HumanInterviewee()
         print("# Live interview. Type your answers; Ctrl-D to end early.\n")
 
-    event_log = None if args.no_log else EventLog(settings.data_dir, transcript.id)
+    event_log = None if args.no_log else EventLog(settings.data_dir, transcript.id, cipher=settings.cipher())
 
     result = run_interview(
         engine=engine,
@@ -132,7 +132,8 @@ def _tag(transcript, llm, settings, args):
         print(f"\n  ✗ UNSUPPORTED ({erej.reason}): \"{erej.claim.statement[:60]}...\"")
 
     if not args.no_log:
-        interp = EventLog(settings.data_dir, transcript.id, layer="interpretation")
+        interp = EventLog(settings.data_dir, transcript.id, layer="interpretation",
+                       cipher=settings.cipher())
         for claim in tagging.claims:
             ev = claim.evidence[0]
             interp.emit(
@@ -163,7 +164,7 @@ def _validate(transcript, claims, settings, args):
     from .validation.gate import AutoValidator, ValidationGate, validate_claims
 
     event_log = None if args.no_log else EventLog(
-        settings.data_dir, transcript.id, layer="validation"
+        settings.data_dir, transcript.id, layer="validation", cipher=settings.cipher()
     )
 
     if args.validate:

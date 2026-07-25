@@ -174,6 +174,27 @@ def withdrawn() -> str:
     return layout("Discarded", body)
 
 
+def temporarily_unavailable(token: str) -> str:
+    """A model failure, told honestly: recoverable, and nothing was lost.
+
+    Distinct from :func:`unavailable`, which is a dead link. Conflating the two would
+    tell someone their interview was over when it is merely paused — and they would
+    not come back.
+    """
+    body = (
+        "<h1>Just a moment — we couldn't reach the interviewer</h1>"
+        '<p class="lede">Nothing you have said has been lost. This is a temporary '
+        "problem on our side, not anything you did.</p>"
+        '<div class="card">'
+        f'<form method="get" action="/i/{esc(token)}">'
+        '<button type="submit">Try again</button></form>'
+        '<p class="small" style="margin-top:14px">If it keeps happening, close the page '
+        "and come back to this link later — your answers so far are still here.</p>"
+        "</div>"
+    )
+    return layout("One moment", body)
+
+
 def unavailable() -> str:
     """One page for every not-usable case, so nothing is revealed by the difference."""
     body = (

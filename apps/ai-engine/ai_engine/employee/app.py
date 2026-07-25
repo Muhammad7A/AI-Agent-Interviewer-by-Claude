@@ -28,6 +28,7 @@ from ..interview.engine import InterviewEngine
 from ..interview.session import DEFAULT_OBJECTIVE
 from ..persistence.event_log import EventLog
 from ..persistence.invitations import InvitationStatus, InvitationStore
+from ..llm.retry import LLMError
 from ..persistence.transcript_store import TranscriptStore
 from ..transcript.model import Speaker, Transcript
 from . import views
@@ -42,6 +43,8 @@ OBJECTIVE_NOTE = (
 class LiveSession:
     driver: InterviewDriver
     question: str | None = None
+    #: Set when a model call failed. The interview is recoverable, not over.
+    stalled: bool = False
 
 
 @dataclass
@@ -97,6 +100,12 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
             return HTMLResponse(views.welcome(token=token, objective_note=OBJECTIVE_NOTE))
 
         answered = _answered_pairs(session.driver.transcript)
+        if session.stalled and not session.driver.closed:
+            try:
+                session.question = session.driver.next_question()
+                session.stalled = False
+            except LLMError:
+                return HTMLResponse(views.temporarily_unavailable(token), status_code=503)
         if session.driver.closed or session.question is None:
             return HTMLResponse(views.review_before_finish(token=token, answered=answered))
         return HTMLResponse(views.question_page(
@@ -125,7 +134,11 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
                 max_turns=settings.max_turns,
             )
             session = LiveSession(driver=driver)
-            session.question = driver.next_question()
+            try:
+                session.question = driver.next_question()
+            except LLMError:
+                store().set_status(token, InvitationStatus.PENDING)
+                return HTMLResponse(views.temporarily_unavailable(token), status_code=503)
             sessions.live[token] = session
             store().set_status(token, InvitationStatus.IN_PROGRESS,
                                transcript_id=transcript.id)
@@ -139,7 +152,14 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
             return _unavailable()
         if not session.driver.closed and session.question is not None:
             session.driver.submit_answer(answer)
-            session.question = session.driver.next_question()
+            try:
+                session.question = session.driver.next_question()
+            except LLMError:
+                # The answer is already recorded; only the NEXT question failed.
+                # Leave the session intact so a refresh retries, rather than
+                # discarding fifteen minutes of someone's time.
+                session.question = None
+                session.stalled = True
         return RedirectResponse(f"/i/{token}", status_code=303)
 
     @app.post("/i/{token}/finish")

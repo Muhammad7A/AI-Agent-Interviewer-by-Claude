@@ -52,6 +52,8 @@ class InterviewDriver:
         self._closed = False
         self._close_reason: str | None = None
         self._started = False
+        # Whether the current pending answer has already been folded into the state.
+        self._folded_current = True  # nothing to fold before the first answer
 
     # -- state ------------------------------------------------------------
     @property
@@ -104,8 +106,14 @@ class InterviewDriver:
         # The engine folds the previous answer into the state itself, before choosing
         # the next move — it has to, or the decision would always be one turn behind
         # the answer it is reacting to. Folding again here would double-count.
+        # Folding happens before the model call, so if that call fails the fold has
+        # already occurred. Mark it done *before* the call, so retrying after a
+        # transient model failure does not count the same answer twice.
+        fold = not self._folded_current
+        self._folded_current = True
         turn: InterviewerTurn = self._engine.next_turn(
-            state=self._state, history=self._history, last_answer=self._last_answer
+            state=self._state, history=self._history, last_answer=self._last_answer,
+            fold_last=fold,
         )
 
         segment = self._transcript.append(Speaker.INTERVIEWER, turn.utterance)
@@ -149,6 +157,7 @@ class InterviewDriver:
         )
         self._last_answer = answer
         self._pending_question = None
+        self._folded_current = False  # this new answer has not been folded yet
 
     def _close(self, reason: str) -> None:
         if self._closed:

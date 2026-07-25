@@ -195,11 +195,18 @@ class InterviewEngine:
         state: InterviewState,
         history: list[Message],
         last_answer: str | None,
+        fold_last: bool = True,
     ) -> InterviewerTurn:
-        # Fold the previous answer into the state BEFORE deciding, so the decision is
-        # made with it rather than one turn behind. (The driver no longer folds.)
+        """Produce the next turn.
+
+        ``fold_last=False`` when the caller is *retrying* after a failed model call:
+        the previous answer was already folded into the state on the attempt that
+        failed, and folding it twice would double-count the disclosure and corrupt
+        coverage. Folding happens before the model call, so a caller that saw an
+        exception must assume it happened.
+        """
         assessment: Assessment | None = None
-        if last_answer is not None and state.pending_area is not None:
+        if fold_last and last_answer is not None and state.pending_area is not None:
             assessment = assess_locally(last_answer, state)
             state.record_answer(
                 areas_touched=assessment.areas_touched,

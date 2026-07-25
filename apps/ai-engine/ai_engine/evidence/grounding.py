@@ -17,7 +17,7 @@ Rules enforced here:
 from __future__ import annotations
 
 import re
-import uuid
+from hashlib import sha256
 
 from ..transcript.model import EvidenceRef, Speaker, Transcript
 from .model import (
@@ -56,6 +56,22 @@ def _canon_char(ch: str) -> str:
 
 def _canon(text: str) -> str:
     return "".join(_canon_char(c) for c in text)
+
+
+def claim_id_for(
+    *, transcript_id: str, segment_id: str, start: int, end: int, statement: str
+) -> str:
+    """A content-addressed claim id.
+
+    Deliberately not random. A human validation decision is recorded against a claim
+    id, so a random id would orphan every verdict the moment the transcript was
+    re-tagged in a new process — the consultant's judgements would silently vanish.
+    A claim *is* a function of the span it rests on and what it asserts, so its
+    identity should be too: re-tagging the same transcript reproduces the same ids and
+    the recorded verdicts still apply.
+    """
+    material = "|".join([transcript_id, segment_id, str(start), str(end), statement.strip()])
+    return f"clm-{sha256(material.encode('utf-8')).hexdigest()[:12]}"
 
 
 def _word_char(ch: str) -> bool:
@@ -158,7 +174,10 @@ def ground_proposal(
                 match_kind=kind,
             )
             claim = Claim(
-                id=f"clm-{uuid.uuid4().hex[:12]}",
+                id=claim_id_for(
+                    transcript_id=transcript.id, segment_id=seg.id,
+                    start=start, end=end, statement=proposal.statement,
+                ),
                 claim_type=ClaimType.coerce(proposal.claim_type),
                 statement=proposal.statement.strip(),
                 evidence=(evidence,),

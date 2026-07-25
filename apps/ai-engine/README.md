@@ -81,6 +81,54 @@ python3 -m ai_engine.cli --simulated     # interviewer AND persona now use the m
 The LLM sits behind a port (`ai_engine/llm/`); switching providers is an
 infrastructure-only change. No domain/application code names a model or SDK.
 
+### The consultant workspace (web app)
+
+The MVP loop as a local web app — **consultant-only**, on purpose. The employer never
+gets a login; they receive a generated, firewalled document. That keeps the privacy
+boundary a property of the architecture rather than a permissions checkbox a future
+feature can tick.
+
+```bash
+pip install -e '.[web]'
+python3 -m ai_engine.webapp          # http://127.0.0.1:8000
+```
+
+Interview → review evidence → validate → report. Notable properties:
+
+- **Pseudonymised at ingest.** You type a real name to start an interview; it is
+  converted immediately and appears nowhere afterwards — the page shows `P-5a3e43`.
+- **Evidence renders before the controls.** The quote sits above the accept/reject
+  buttons in the markup, because a verdict recorded without reviewing the evidence is
+  a rubber stamp (F6), and the gate stores the evidence you reviewed with the decision.
+- **The gate is the engine's, not the UI's.** Rejecting without a reason is refused
+  because `ValidationGate` refuses it, not because a form validates.
+- **Verdicts survive restarts**, which required making claim identity
+  content-addressed (`claim_id_for`): with random ids, re-tagging a transcript in a
+  new process minted new ids and silently orphaned every recorded judgement.
+- **Testimony is escaped, never interpolated raw** — transcript text is untrusted
+  input, and this is a tool for handling sensitive material.
+- **No authentication, deliberately**, and stated in the startup banner: a localhost
+  single-consultant tool for the Year-0/1 experiments. Auth arrives with the second
+  user (Art. XIX). Binding to a non-loopback host prints a warning.
+- The turn loop is **not duplicated**: `InterviewDriver` defines a turn once and both
+  the batch CLI and the request-per-turn web app drive it.
+
+The firewall demonstrably works in both directions. With **one** interviewee the
+employer receives *nothing* — all topics withheld, because one person's findings
+cannot be anonymous. With **three**, the same engagement releases group-level findings:
+
+```
+- **Interviews:** 3        - **Topics released:** 5
+
+### workaround: keep, report, unusable, weekly, because
+_workaround · 3 participants · confidence 0.87_
+- 3 participants raised this. Individual responses are withheld.
+  - _withheld: individual responses, attribution, verbatim quotes, per-participant confidence_
+```
+
+Zero real names, zero verbatim quotes — asserted by a test that scans the employer
+page for every 5-word phrase from every stored utterance.
+
 ### Durable evidence + the production posture (prerequisites for any app)
 
 Two gaps that a CLI tolerates and a deployed app cannot.

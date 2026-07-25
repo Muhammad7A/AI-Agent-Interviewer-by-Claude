@@ -10,13 +10,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from ..llm.client import Message
-from ..persistence.event_log import EventLog, NullEventLog
-from ..transcript.model import Speaker, Transcript
+from ..persistence.event_log import EventLog
+from ..transcript.model import Transcript
+from .driver import InterviewDriver
 from .engine import InterviewEngine
-from .prompts import PROMPT_VERSION
 from .state import InterviewState
-from .turn import InterviewerTurn
 
 # Called with (speaker, text) so a CLI can print the exchange as it happens.
 Emitter = Callable[[str, str], None]
@@ -49,80 +47,33 @@ def run_interview(
     emit: Emitter | None = None,
 ) -> InterviewResult:
     transcript = transcript or Transcript()
-    log = event_log or NullEventLog()
     emit = emit or _noop_emitter
-    state = InterviewState(objective=objective)
-    history: list[Message] = []
 
-    log.emit(
-        "InterviewStarted",
-        engagement_id=transcript.engagement_id,
-        tenant_id=transcript.tenant_id,
-        transcript_id=transcript.id,
+    # The batch loop and the web app share one definition of a turn (see
+    # ``InterviewDriver``); this function is the batch control flow over it.
+    driver = InterviewDriver(
+        engine=engine,
+        transcript=transcript,
         objective=objective,
-        prompt_version=PROMPT_VERSION,
-        mode="live" if engine.is_live else "mock",
+        event_log=event_log,
+        max_turns=max_turns,
     )
 
-    last_answer: str | None = None
-
-    for _ in range(max_turns):
-        turn: InterviewerTurn = engine.next_turn(
-            state=state, history=history, last_answer=last_answer
-        )
-
-        # Fold the engine's assessment of the PREVIOUS answer into coverage.
-        if turn.assessment is not None:
-            state.record_answer(
-                areas_touched=turn.assessment.areas_touched,
-                tier_reached=turn.assessment.tier_reached,
-                got_disclosure=turn.assessment.got_substantive_disclosure,
-            )
-
-        # Record + emit the interviewer's question.
-        q_seg = transcript.append(Speaker.INTERVIEWER, turn.utterance)
-        history.append({"role": "assistant", "content": turn.utterance})
-        state.turn_count += 1
-        emit("interviewer", turn.utterance)
-        log.emit(
-            "InterviewerAsked",
-            segment_id=q_seg.id,
-            sequence=q_seg.sequence,
-            turn=state.turn_count,
-            target_area=(turn.next_move.target_area if turn.next_move else None),
-            tier_targeted=(turn.next_move.tier_targeted if turn.next_move else None),
-            technique=(turn.next_move.technique if turn.next_move else None),
-        )
-
-        if turn.should_close:
-            log.emit("InterviewClosed", reason=turn.closing_reason, **_coverage_payload(state))
+    while True:
+        question = driver.next_question()
+        if question is None:
             break
-
-        # Get the subject's answer, record + emit it.
-        answer = subject.answer(turn.utterance)
-        a_seg = transcript.append(Speaker.SUBJECT, answer)
-        history.append({"role": "user", "content": answer})
+        emit("interviewer", question)
+        answer = subject.answer(question)
+        driver.submit_answer(answer)
         emit("subject", answer)
-        log.emit(
-            "SubjectResponded",
-            segment_id=a_seg.id,
-            sequence=a_seg.sequence,
-            in_reply_to=q_seg.id,
-            chars=len(answer),
-        )
-        last_answer = answer
-    else:
-        # Loop exhausted without an explicit close.
-        log.emit("InterviewClosed", reason="budget", **_coverage_payload(state))
 
-    transcript.finalize()
-    return InterviewResult(transcript=transcript, state=state, turns=state.turn_count)
+    # The closing remark, if the engine produced one, is already recorded.
+    closing = getattr(driver, "_closing_utterance", None)
+    if closing:
+        emit("interviewer", closing)
 
-
-def _coverage_payload(state: InterviewState) -> dict:
-    s = state.summary()
-    return {
-        "areas_covered": s["areas_covered"],
-        "areas_total": s["areas_total"],
-        "disclosures_tier2plus": s["disclosures_tier2plus"],
-    }
+    driver.finish()
+    return InterviewResult(
+        transcript=driver.transcript, state=driver.state, turns=driver.state.turn_count
+    )

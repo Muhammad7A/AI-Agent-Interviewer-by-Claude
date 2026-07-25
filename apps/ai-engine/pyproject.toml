@@ -39,4 +39,5 @@ packages = [
   "ai_engine.confidence",
   "ai_engine.synthetic",
   "ai_engine.fuzz",
+  "ai_engine.privacy",
 ]

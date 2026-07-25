@@ -27,3 +27,10 @@ venv/
 # must NEVER be committed (privacy firewall; Constitution Art. X).
 data/
 *.testimony.jsonl
+*.interpretation.jsonl
+*.validation.jsonl
+
+# Re-identification keys map pseudonyms back to real employees. Committing one
+# would defeat the entire privacy firewall in a single stroke.
+*.RESTRICTED.*
+identity-key*

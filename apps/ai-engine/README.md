@@ -144,6 +144,59 @@ python3 -m ai_engine.cli --simulated --candor open      # auto-sim validation
 python3 -m ai_engine.cli --validate                     # you interview AND validate
 ```
 
+### The privacy firewall (Constitution Article X, in code)
+
+Article X mandated pseudonymization at ingest, an employer firewall, and
+k-anonymity. Until this was built, the implementation was **zero** — it existed only
+in the docs, while the org report printed *"**Dana:** we follow the process"* beside
+*"**Eli:** nobody follows it"*, attributing a Tier-3 dissent to a named employee.
+That is the anonymity paradox (F3) shipping as a feature, and it attacks the only
+structural moat the analysis identified: being the party an employee can safely tell
+the truth to.
+
+`ai_engine/privacy/` implements one distinction the system previously did not make —
+**two audiences with different rights**:
+
+```bash
+python3 -m ai_engine.aggregation --audience employer --k 3   # redacted (default)
+python3 -m ai_engine.aggregation --audience consultant       # inside the firewall
+```
+
+| | consultant (inside) | employer (outside) |
+|---|---|---|
+| identity | pseudonym + separately-held key | never |
+| verbatim quotes | yes | never |
+| per-participant detail | yes | never — **aggregate only** |
+| disagreement | positions shown | *that* it exists, never the sides |
+| sub-k topics | shown | withheld, with a logged reason |
+
+**Pseudonymization at ingest** (HMAC-SHA256 per engagement) means every downstream
+artifact — logs, aggregation, confidence, reports — carries only a pseudonym.
+Pseudonyms are stable within an engagement (corroboration still works), **not
+linkable across engagements** (two clients' data cannot be joined), and not
+reversible without the key, which is written to its own `*.RESTRICTED.*` file and
+gitignored.
+
+#### Three leaks implementing this exposed
+
+Writing the gate found problems that documenting it never would:
+
+1. **The topic label was one participant's verbatim sentence** (the aggregation
+   labels a topic with its longest member statement). Employer labels are now built
+   only from vocabulary **two or more** participants share — by construction not
+   unique to anyone.
+2. **Stripping only the `quote` field was a fake redaction**, because the synthesised
+   `statement` carries the same words. Hence *aggregate-only*: per-member content is
+   per-person disclosure however it is packaged.
+3. **Side sizes identify a lone dissenter** even with names removed — "3 say X, 1
+   says Y" is the leak. Contested topics now report only that a disagreement exists.
+
+The ungated `render_org_report` was **deleted** rather than left in place: an
+ungated renderer is a loaded gun, and the invariant is that nothing reaches an
+employer except through `release()`. Two hard invariants are asserted over a whole
+generated org — **no real name** and **no verbatim 5-word phrase** anywhere in an
+employer release — because redaction that removes only names is not redaction.
+
 ### Multi-interview aggregation (from interview tool to organizational intelligence)
 
 One interview is a data point; an organization is the pattern across many. The

@@ -29,6 +29,7 @@ from ..interview.session import DEFAULT_OBJECTIVE
 from ..persistence.event_log import EventLog
 from ..persistence.invitations import InvitationStatus, InvitationStore
 from ..llm.retry import LLMError
+from ..persistence.session_store import SavedSession, SessionStore
 from ..persistence.transcript_store import TranscriptStore
 from ..transcript.model import Speaker, Transcript
 from . import views
@@ -72,6 +73,42 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
     def store() -> InvitationStore:
         return InvitationStore(settings.data_dir)
 
+    def sessions_store() -> SessionStore:
+        return SessionStore(settings.data_dir, settings.cipher())
+
+    def _persist(token: str, session: LiveSession) -> None:
+        """Checkpoint the draft so a dropped connection does not lose the interview."""
+        sessions_store().save(SavedSession(
+            token=token,
+            transcript=session.driver.transcript,
+            pending_question=session.question,
+            turn_count=session.driver.state.turn_count,
+            closed=session.driver.closed,
+            updated_at=None,  # set on write
+        ))
+
+    def _revive(token: str, invitation) -> LiveSession | None:
+        """Rebuild an in-flight interview from its stored draft, after a restart."""
+        saved = sessions_store().load(token)
+        if saved is None or saved.is_expired():
+            if saved is not None:
+                sessions_store().delete(token)
+            return None
+        driver = InterviewDriver.resume(
+            engine=InterviewEngine(llm=get_llm_client(settings),
+                                   max_turns=settings.max_turns),
+            transcript=saved.transcript,
+            objective=DEFAULT_OBJECTIVE,
+            pending_question=saved.pending_question,
+            turn_count=saved.turn_count,
+            event_log=EventLog(settings.data_dir, saved.transcript.id,
+                               layer="testimony", cipher=settings.cipher()),
+            max_turns=settings.max_turns,
+        )
+        session = LiveSession(driver=driver, question=saved.pending_question)
+        sessions.live[token] = session
+        return session
+
     def _unavailable() -> HTMLResponse:
         # One response for unknown, used, and withdrawn tokens alike: distinguishing
         # them would let a probe learn which tokens exist.
@@ -95,7 +132,7 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
         if invitation is None or invitation.is_finished:
             return _unavailable()
 
-        session = sessions.live.get(token)
+        session = sessions.live.get(token) or _revive(token, invitation)
         if session is None:
             return HTMLResponse(views.welcome(token=token, objective_note=OBJECTIVE_NOTE))
 
@@ -140,6 +177,7 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
                 store().set_status(token, InvitationStatus.PENDING)
                 return HTMLResponse(views.temporarily_unavailable(token), status_code=503)
             sessions.live[token] = session
+            _persist(token, session)
             store().set_status(token, InvitationStatus.IN_PROGRESS,
                                transcript_id=transcript.id)
         return RedirectResponse(f"/i/{token}", status_code=303)
@@ -148,6 +186,8 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
     def answer(request: Request, token: str, answer: str = Form(...)):
         invitation = store().get(token)
         session = sessions.live.get(token)
+        if session is None and invitation is not None and not invitation.is_finished:
+            session = _revive(token, invitation)
         if invitation is None or invitation.is_finished or session is None:
             return _unavailable()
         if not session.driver.closed and session.question is not None:
@@ -160,17 +200,23 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
                 # discarding fifteen minutes of someone's time.
                 session.question = None
                 session.stalled = True
+        _persist(token, session)
         return RedirectResponse(f"/i/{token}", status_code=303)
 
     @app.post("/i/{token}/finish")
     def finish(request: Request, token: str):
         invitation = store().get(token)
         session = sessions.live.pop(token, None)
+        if session is None and invitation is not None and not invitation.is_finished:
+            session = _revive(token, invitation)
+            sessions.live.pop(token, None)
         if invitation is None or invitation.is_finished or session is None:
             return _unavailable()
         transcript = session.driver.finish()
         TranscriptStore(settings.data_dir, settings.cipher()).save(
             transcript, overwrite=True)
+        # The draft has become a consented record; the working copy goes.
+        sessions_store().delete(token)
         store().set_status(token, InvitationStatus.COMPLETED,
                            transcript_id=transcript.id)
         return HTMLResponse(views.finished())
@@ -183,6 +229,8 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
         # Drop the in-flight interview without ever storing it. The right to withdraw
         # is only real if withdrawing leaves nothing behind.
         sessions.live.pop(token, None)
+        # Deleting the draft is what makes the right to withdraw real.
+        sessions_store().delete(token)
         store().set_status(token, InvitationStatus.WITHDRAWN)
         return HTMLResponse(views.withdrawn())
 

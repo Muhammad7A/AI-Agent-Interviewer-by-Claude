@@ -55,6 +55,55 @@ class InterviewDriver:
         # Whether the current pending answer has already been folded into the state.
         self._folded_current = True  # nothing to fold before the first answer
 
+    @classmethod
+    def resume(
+        cls,
+        *,
+        engine: InterviewEngine,
+        transcript: Transcript,
+        objective: str,
+        pending_question: str | None,
+        turn_count: int,
+        event_log: EventLog | None = None,
+        max_turns: int = 14,
+    ) -> "InterviewDriver":
+        """Rebuild a driver mid-interview from a stored draft.
+
+        Coverage state is reconstructed by replaying the transcript's answers through
+        the same local assessment the engine uses, rather than being persisted
+        separately — one source of truth for what an answer meant, so a resumed
+        interview cannot diverge from one that never stopped.
+        """
+        driver = cls(engine=engine, transcript=transcript, objective=objective,
+                     event_log=event_log, max_turns=max_turns)
+        driver._started = True  # do not re-emit InterviewStarted on every resume
+        driver._pending_question = pending_question
+        driver._state.turn_count = turn_count
+
+        from .engine import assess_locally
+
+        pending_q: str | None = None
+        for segment in transcript.segments:
+            if segment.speaker is Speaker.INTERVIEWER:
+                pending_q = segment.text
+                driver._history.append({"role": "assistant", "content": segment.text})
+            else:
+                driver._history.append({"role": "user", "content": segment.text})
+                if pending_q is not None:
+                    assessment = assess_locally(segment.text, driver._state)
+                    driver._state.record_answer(
+                        areas_touched=assessment.areas_touched,
+                        tier_reached=assessment.tier_reached,
+                        got_disclosure=assessment.got_substantive_disclosure,
+                        specificity=assessment.specificity,
+                        candor_signal=assessment.candor_signal,
+                        answer=segment.text,
+                    )
+                driver._last_answer = segment.text
+                pending_q = None
+        driver._folded_current = True  # everything replayed is already folded
+        return driver
+
     # -- state ------------------------------------------------------------
     @property
     def transcript(self) -> Transcript:

@@ -129,6 +129,49 @@ mid-interview and then greps the entire data directory to prove the words are no
 Unknown, completed and withdrawn tokens all return the **same** page, so a probe cannot
 learn which tokens exist by comparing responses.
 
+### Derived-result cache (what makes the app usable live)
+
+Measuring the aggregation cost turned up something worse than the cost itself:
+**nothing was cached**. The consultant workspace recomputed the entire pipeline on
+every page view — the same stored interviews produced the same model calls on a
+refresh, and an engagement report re-ran every pairwise relation call each time it was
+opened. Measured, three stored interviews produced three model calls per dashboard
+render, identically on the second render. With a live model that is minutes of latency
+and repeated spend *per click*, not per engagement.
+
+The cache boundary is **temperature**, which is a principled line rather than a
+convenient one:
+
+- At `temperature = 0` the provider is asked for its single best answer, so calling
+  twice with identical input requests the same thing twice. Reusing it changes cost and
+  latency, not behaviour. Tagging, entailment and relation classification all run at 0.
+- Above 0 the caller is deliberately sampling. The interview loop runs at 0.4 because
+  an interviewer that asks every participant the same scripted question is not an
+  interviewer. Caching there would replace variation with repetition — a behaviour
+  change disguised as an optimisation — so it is refused.
+
+Measured effect on repeated renders:
+
+| | dashboard | engagement |
+|---|---|---|
+| 1st render | 3 calls | 0 |
+| 2nd render | **0** | 0 |
+| 3rd render | **0** | 0 |
+
+Two properties make this correct rather than merely fast. **Transcripts are immutable
+and finalized**, so a derived result is a pure function of its inputs and can never go
+stale against a transcript that changed underneath it — none ever does. And **keys
+carry the prompt version and the model**, so editing a prompt invalidates its own
+entries instead of silently serving the previous behaviour, and one model never serves
+another's answers.
+
+The cache is encrypted at rest with the same cipher as everything else, because cached
+extraction output contains verbatim claim statements — an unencrypted cache would
+quietly reintroduce the plaintext leak the event logs just had. Failures are never
+cached, so a transient outage cannot become a permanently empty answer, and a corrupt
+entry is treated as a miss: the cache is an optimisation and must never be able to
+break the pipeline. Set `ONTORA_CACHE=0` to measure what an uncached run really costs.
+
 ### The consultant workspace (web app)
 
 The MVP loop as a local web app — **consultant-only**, on purpose. The employer never

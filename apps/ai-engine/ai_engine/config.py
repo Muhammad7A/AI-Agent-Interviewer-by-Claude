@@ -60,6 +60,9 @@ class Settings:
         default_factory=lambda: os.environ.get(KEY_ENV) or None
     )
     runtime: Runtime = field(default_factory=_runtime_from_env)
+    #: Reuse deterministic derived results across page views. Off only for
+    #: benchmarking what an uncached run actually costs.
+    cache_derived: bool = os.environ.get("ONTORA_CACHE", "1") not in ("0", "false", "no")
     max_turns: int = int(os.environ.get("ONTORA_MAX_TURNS", "14"))
     temperature: float = float(os.environ.get("ONTORA_TEMPERATURE", "0.4"))
     data_dir: Path = Path(os.environ.get("ONTORA_DATA_DIR", "data/interviews"))
@@ -74,6 +77,12 @@ class Settings:
 
     def cipher(self) -> Cipher:
         return make_cipher(self.store_key)
+
+    def derived_store(self):
+        """Cache for deterministic derived results. Encrypted like everything else."""
+        from .persistence.derived_store import DerivedStore
+
+        return DerivedStore(self.data_dir, self.cipher())
 
     # -- the posture check --------------------------------------------------
     def deployment_problems(self) -> list[str]:
@@ -141,6 +150,12 @@ def get_llm_client(settings: Settings | None = None):
                 f"back to the scripted mock interviewer."
             )
         return None
+    from .llm.cache import wrap_if_caching
     from .llm.client import AnthropicClient
 
-    return AnthropicClient(model=settings.model, api_key=settings.api_key)
+    client = AnthropicClient(model=settings.model, api_key=settings.api_key)
+    # Deterministic calls (tagging, entailment, relation classification) are served
+    # from cache; the interview loop samples and is never cached. Wrapping here means
+    # every caller benefits without knowing the cache exists.
+    return wrap_if_caching(client, settings.derived_store(), model=settings.model,
+                           enabled=settings.cache_derived)

@@ -41,6 +41,8 @@ CORE_MODULES = (
     "ai_engine.fuzz.runner",
     "ai_engine.persistence.invitations",
     "ai_engine.persistence.session_store",
+    "ai_engine.persistence.derived_store",
+    "ai_engine.llm.cache",
     "ai_engine.llm.retry",
     # The web packages' non-web parts must not drag FastAPI in.
     "ai_engine.webapp",

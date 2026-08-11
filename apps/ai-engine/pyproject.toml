@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ontora-ai-engine"
+version = "0.0.1"
+description = "Ontora AI cognition — the runnable interview loop (thin slice)."
+requires-python = ">=3.10"
+dependencies = []
+
+# The Anthropic SDK is optional. The package imports and runs in mock /
+# simulated mode with zero dependencies and no network. Install the extra to
+# talk to a live model:  pip install -e '.[live]'
+[project.optional-dependencies]
+live = ["anthropic>=0.39"]
+# Encryption at rest for stored testimony. Required in production.
+secure = ["cryptography>=42"]
+# The consultant workspace (local web app).
+web = ["fastapi>=0.110", "uvicorn>=0.27", "python-multipart>=0.0.9"]
+
+[project.scripts]
+ontora-interview = "ai_engine.cli:main"
+ontora-eval = "ai_engine.eval.__main__:main"
+ontora-aggregate = "ai_engine.aggregation.__main__:main"
+ontora-calibrate = "ai_engine.confidence.__main__:main"
+ontora-synth = "ai_engine.synthetic.__main__:main"
+ontora-fuzz = "ai_engine.fuzz.__main__:main"
+ontora-web = "ai_engine.webapp.__main__:main"
+ontora-interview-surface = "ai_engine.employee.__main__:main"
+
+[tool.setuptools]
+packages = [
+  "ai_engine",
+  "ai_engine.llm",
+  "ai_engine.interview",
+  "ai_engine.transcript",
+  "ai_engine.persistence",
+  "ai_engine.subjects",
+  "ai_engine.evidence",
+  "ai_engine.validation",
+  "ai_engine.report",
+  "ai_engine.eval",
+  "ai_engine.aggregation",
+  "ai_engine.confidence",
+  "ai_engine.synthetic",
+  "ai_engine.fuzz",
+  "ai_engine.privacy",
+  "ai_engine.webapp",
+  "ai_engine.employee",
+]

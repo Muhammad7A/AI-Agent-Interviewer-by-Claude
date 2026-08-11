@@ -1,0 +1,62 @@
+name: CI
+
+# Runs on every push and pull request. Turns the Engineering Constitution from a
+# document into enforced rules: if the tests break, the evaluation gate fails
+# (confabulation creeps up, truth recovery drops), or the safety-gate audit finds a
+# false accept, the build goes red.
+on:
+  push:
+  pull_request:
+
+jobs:
+  ai-engine:
+    name: ai-engine tests + eval gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai-engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Before installing anything: the engine must import with zero third-party
+      # dependencies. This step exists because it once did not — the web app's
+      # __init__ eagerly imported FastAPI, so `import ai_engine.webapp.ledger`
+      # required an optional package and this workflow went red. Run first, on a
+      # bare interpreter, so the contract is checked rather than assumed.
+      - name: Verify the zero-dependency import contract
+        run: python -m unittest tests.test_import_contract -v
+
+      # Optional extras are installed so their tests actually RUN. Without this the
+      # web-app tests skip silently and the build goes green having tested nothing,
+      # which is worse than failing.
+      - name: Install optional dependencies (web, secure)
+        run: pip install fastapi uvicorn python-multipart httpx cryptography
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      # Fail if any test was skipped: a skip in CI means a dependency is missing and
+      # a guarantee went unverified. Locally skipping is fine; in CI it is a gap.
+      - name: Assert no tests were skipped
+        run: |
+          python -m unittest discover -s tests 2>&1 | tee /tmp/out.txt
+          if grep -qE 'skipped=[1-9]' /tmp/out.txt; then
+            echo "::error::tests were skipped in CI — an optional dependency is missing"
+            grep -oE 'skipped=[0-9]+' /tmp/out.txt
+            exit 1
+          fi
+
+      # Exits non-zero if any safety or capability gate fails.
+      - name: Run evaluation gate
+        run: python -m ai_engine.eval
+
+      # Property-based audit of the two gates the product's credibility rests on:
+      # grounding (is the quote real?) and entailment (does it support the claim?).
+      # Exits non-zero on any false accept, false reject, integrity or crash finding.
+      - name: Run safety-gate fuzz audit
+        run: python -m ai_engine.fuzz --cases 800 --org-size 8

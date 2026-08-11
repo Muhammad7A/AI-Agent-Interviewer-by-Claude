@@ -1,0 +1,23 @@
+# Normalize line endings so a checkout on Windows doesn't produce a diff in
+# every file. Text is stored with LF in the repository regardless of platform.
+* text=auto eol=lf
+
+# Build output. Ignored by .gitignore, but marked generated as well so that if a
+# copy ever does get committed it is collapsed in diffs and excluded from the
+# repository's language statistics rather than distorting them.
+packages/contracts/dist/**   linguist-generated=true
+apps/*/dist/**               linguist-generated=true
+
+# Vendored lockfiles are noise in review.
+package-lock.json            linguist-generated=true
+pnpm-lock.yaml               linguist-generated=true
+
+# Documentation is excluded from language statistics by default; this repo's
+# docs/ is large enough that the default matters. Left explicit for clarity.
+docs/**                      linguist-documentation=true
+
+# Binary-ish assets: never diff, never merge.
+*.png    binary
+*.jpg    binary
+*.pdf    binary
+*.ico    binary

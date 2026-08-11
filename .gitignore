@@ -14,3 +14,23 @@ npm-debug.log*
 .DS_Store
 .idea/
 .vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Captured interview data — testimony contains sensitive employee disclosure and
+# must NEVER be committed (privacy firewall; Constitution Art. X).
+data/
+*.testimony.jsonl
+*.interpretation.jsonl
+*.validation.jsonl
+
+# Re-identification keys map pseudonyms back to real employees. Committing one
+# would defeat the entire privacy firewall in a single stroke.
+*.RESTRICTED.*
+identity-key*

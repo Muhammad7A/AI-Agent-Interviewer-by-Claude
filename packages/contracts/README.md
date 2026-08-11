@@ -1,8 +1,24 @@
 # @oi/contracts — the Shared Kernel
 
-The **single source of truth** for the platform's evidence-first provenance model
-and the **one-graph substrate**. Shared by the core bounded contexts (Knowledge,
-Insights) and mirrored to the Python `ai-engine` as Published Language.
+> ## ⚠ STATUS: RATIFIED DESIGN — CONTRACTS ONLY. NO RUNTIME.
+>
+> `tsc` type-checks this package; nothing executes it. The working system is the
+> Python package `apps/ai-engine/ai_engine/`.
+>
+> This package was described as "mirrored to the Python ai-engine". It was mirrored
+> **by hand, in comments**, and it drifted: the Python `EvidenceRef` had lost
+> `transcriptId`, so a reference could not resolve itself and — once findings from
+> several interviews were aggregated — could resolve against the wrong person's
+> transcript and yield someone else's words as evidence.
+>
+> The mirror is now mechanical. `apps/ai-engine/tests/test_contract_conformance.py`
+> parses these interfaces and fails the build on any undeclared divergence, in either
+> direction. The thin slice may implement *less* than the ratified design; every such
+> omission is recorded there with a reason.
+
+The **ratified source of truth** for the platform's evidence-first provenance model
+and the **one-graph substrate**, intended to be shared by the core bounded contexts
+(Knowledge, Insights) and by the Python `ai-engine` as Published Language.
 
 **Type contracts only.** This package contains **no domain behaviour** — no
 persistence, no infrastructure, no application/domain services, no presentation,

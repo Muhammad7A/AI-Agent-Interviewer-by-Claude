@@ -1,0 +1,22 @@
+Ontora — Organizational Intelligence
+Copyright 2026 Ontora
+
+This product includes software developed as part of the Ontora
+Organizational Intelligence platform.
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file
+for the full terms.
+
+---
+
+A note on what this software handles.
+
+The interview engine in this repository processes verbatim testimony from
+named individuals about their own workplaces, including disclosures that
+could damage their standing if attributed. Anyone deploying it inherits a
+duty of care toward those people that no software license can discharge.
+
+If you run this against real employees, read docs/ENGINEERING_CONSTITUTION.md
+and the privacy notes in apps/ai-engine/ai_engine/privacy/ before you do.
+The Apache License disclaims warranty; it does not disclaim your obligations
+to the people you interview.

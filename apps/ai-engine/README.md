@@ -74,7 +74,7 @@ ratio with a known denominator.
 ```bash
 pip install -e '.[live]'
 export ANTHROPIC_API_KEY=sk-...
-export ONTORA_MODEL=claude-opus-4-8      # optional; defaults to a current Claude
+export ONTORA_MODEL=claude-sonnet-5      # optional; this is also the default
 python3 -m ai_engine.cli --simulated     # interviewer AND persona now use the model
 ```
 

@@ -13,6 +13,7 @@ import json
 import re
 from typing import Protocol, runtime_checkable
 
+from ..lexicon import NEGATION_CUES, quantities
 from ..llm.client import LLMClient
 from .model import Relation
 
@@ -29,10 +30,17 @@ _STOPWORDS = {
 
 # Polarity cues: does the statement assert a thing is happening / true (POS) or
 # not happening / broken / absent (NEG)? Opposite polarity on a shared topic = conflict.
-_NEG = (
-    "nobody", "no one", "never", " not ", "isn't", "aren't", "don't", "doesn't",
+#
+# The general negation vocabulary is shared with the entailment gate (see
+# ``ai_engine.lexicon``) because keeping two private copies is exactly how this
+# drifted: this list knew ``can't`` but not ``cannot``, so "Finance cannot close
+# the books on time" and "Finance closes the books on time, always" were read as
+# AGREE — and the confidence scorer then counted the contradiction as an
+# independent corroborating voice. Domain-specific cues that only make sense when
+# describing a process ("outdated", "unusable") stay here.
+_NEG = NEGATION_CUES + (
     "out of date", "outdated", "ignored", "ignore", "abandon", "unusable",
-    "broken", "fails", "rarely", "hardly", "stopped", "won't", "can't",
+    "broken", "fails", "fell over", "gave up on",
 )
 _POS = (
     # Deliberately excludes ambiguous stems like "follow"/"updated": those fire
@@ -49,10 +57,20 @@ def content_words(text: str) -> set[str]:
 
 
 def _polarity(text: str) -> int:
+    """+1 asserts the thing happens, -1 denies it, 0 says neither.
+
+    **Negation dominates.** Counting cues and comparing totals let a positive cue
+    sitting *inside* a negation cancel it out: "Finance cannot close the books on
+    time" scored `on time` as +1 against `cannot` as -1 and came out neutral,
+    which read as agreement with "Finance closes the books on time, always". This
+    is the same scope trap the `_POS` list already avoids by excluding "follow"
+    and "updated" — a denial containing an affirming word is still a denial, so
+    the rule belongs in the function rather than in the choice of vocabulary.
+    """
     padded = " " + text.lower() + " "
-    neg = sum(1 for cue in _NEG if cue in padded)
-    pos = sum(1 for cue in _POS if cue in padded)
-    return (pos > neg) - (pos < neg)  # +1, 0, or -1
+    if any(cue in padded for cue in _NEG):
+        return -1
+    return 1 if any(cue in padded for cue in _POS) else 0
 
 
 def overlap_coefficient(a_words: set[str], b_words: set[str]) -> float:
@@ -79,6 +97,18 @@ class HeuristicRelationChecker:
             return Relation.UNRELATED
         pa, pb = _polarity(a), _polarity(b)
         if pa and pb and pa != pb:
+            return Relation.CONFLICT
+        # One-sided polarity still conflicts. Requiring a cue on *both* sides let
+        # a plain assertion ("Finance closes the books on time") agree with its own
+        # denial ("Finance cannot close the books on time"), because the
+        # unmarked side scores 0 and `pa and pb` short-circuits.
+        if (pa < 0) != (pb < 0):
+            return Relation.CONFLICT
+        # Two people quoting different figures for the same thing disagree, however
+        # closely their wording matches: "approvals take three days" and "approvals
+        # take thirty days" share every other word.
+        qa, qb = quantities(a), quantities(b)
+        if qa and qb and qa != qb:
             return Relation.CONFLICT
         if overlap >= self.AGREE_MIN_OVERLAP and pa == pb:
             return Relation.AGREE

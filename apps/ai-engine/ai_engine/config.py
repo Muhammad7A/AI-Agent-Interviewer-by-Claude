@@ -29,7 +29,20 @@ from pathlib import Path
 from .persistence.crypto import KEY_ENV, Cipher, cipher_available, make_cipher
 
 # Default to a current Claude model; override with ONTORA_MODEL.
-DEFAULT_MODEL = os.environ.get("ONTORA_MODEL", "claude-opus-4-8")
+#
+# This default must be a *real* model id. The previous value named a model that
+# does not exist, so the first live call returned 404 — and because 404 is
+# correctly classified as permanent in ``llm/retry.py``, it failed instantly
+# rather than retrying. Nothing caught it because the evaluation harness had only
+# ever run in mock mode, where no request is made at all. See
+# :func:`preflight_model`, which exists so that failure can never again wait
+# until an employee is mid-interview to surface.
+#
+# Sonnet rather than the largest model: an engagement is roughly four hundred
+# calls, and the deterministic ones (tagging, entailment, relation) are
+# classification work. Set ONTORA_MODEL to a larger model if interview cognition
+# needs it — that is a one-variable change.
+DEFAULT_MODEL = os.environ.get("ONTORA_MODEL", "claude-sonnet-5")
 
 ENV_VAR = "ONTORA_ENV"
 
@@ -133,6 +146,53 @@ class Settings:
 
 def load_settings() -> Settings:
     return Settings()
+
+
+class ModelUnavailable(ConfigurationError):
+    """The configured model could not be reached with a trivial request."""
+
+
+def preflight_model(settings: Settings | None = None) -> str:
+    """Make one minimal call to prove the configured model actually answers.
+
+    ``assert_deployable`` checks that configuration is *present*; it deliberately
+    touches no network, so it cannot tell a real model id from a plausible
+    typo. That gap is how an invalid default model shipped: every offline check
+    passed and the first real interview died at turn one with a 404.
+
+    This closes it with the cheapest possible request — a few tokens — and is
+    called once at startup, before any employee can reach the system. It is a
+    no-op without a live model, since mock mode makes no requests.
+
+    Returns the model id on success. Raises :class:`ModelUnavailable` otherwise,
+    naming the model, so the operator learns which id is wrong rather than
+    reading a stack trace from inside the SDK.
+    """
+    settings = settings or load_settings()
+    if not settings.has_live_model:
+        return "mock"
+    from .llm.client import AnthropicClient
+    from .llm.retry import RetryPolicy
+
+    # One attempt: a wrong model id is permanent, and an overloaded API should not
+    # hold up startup for four backoffs. A transient failure here is reported the
+    # same way — the operator retries the command.
+    client = AnthropicClient(
+        model=settings.model,
+        api_key=settings.api_key,
+        policy=RetryPolicy(attempts=1),
+    )
+    try:
+        client.complete(system="Reply with the single word: ok.",
+                        messages=[{"role": "user", "content": "ping"}],
+                        max_tokens=8, temperature=0.0)
+    except Exception as exc:
+        raise ModelUnavailable(
+            f"the configured model {settings.model!r} did not answer a trivial "
+            f"request ({type(exc).__name__}: {exc}). Check ONTORA_MODEL names a "
+            f"current model and that ANTHROPIC_API_KEY is valid."
+        ) from exc
+    return settings.model
 
 
 def get_llm_client(settings: Settings | None = None):

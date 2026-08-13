@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from ..interview.engine import InterviewEngine
 from ..interview.session import run_interview
+from ..lexicon import quantities
 from ..persistence.event_log import NullEventLog
 from ..subjects.simulated import SimulatedInterviewee
 from ..synthetic import OrgSpec, generate_org
@@ -65,7 +66,34 @@ def collect_spans(
                     text=text,
                     segment_text=segment.text,
                 ))
+            figure_span = _span_around_figure(words, segment.text)
+            if figure_span is not None:
+                spans.append(QuoteSpan(
+                    transcript=transcript,
+                    segment_id=segment.id,
+                    text=figure_span,
+                    segment_text=segment.text,
+                ))
     return spans
+
+
+def _span_around_figure(words: list[str], segment_text: str) -> str | None:
+    """A window covering the first stated figure in ``words``, if there is one.
+
+    Sampling alone could not be relied on to produce one. Three random 2–8 word
+    windows per segment will usually miss a figure sitting at the end of a long
+    sentence, so the quantity property recorded zero runs and reported as healthy —
+    a property that never executes is worse than a missing one, because the report
+    reads as coverage. This makes at least one numeric span certain whenever the
+    segment states a figure, so the mutator always has something to substitute.
+    """
+    for i, word in enumerate(words):
+        if not quantities(word):
+            continue
+        start = max(0, i - 2)
+        text = " ".join(words[start : i + 3])
+        return text if text.strip() and text in segment_text else None
+    return None
 
 
 def interviewer_spans(transcripts: list[Transcript], rng: random.Random) -> list[QuoteSpan]:

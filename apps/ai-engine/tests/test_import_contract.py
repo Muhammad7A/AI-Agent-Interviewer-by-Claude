@@ -53,18 +53,28 @@ CORE_MODULES = (
 _BLOCKED = ("fastapi", "starlette", "uvicorn", "httpx", "pydantic", "multipart",
             "anthropic", "cryptography")
 
+# Modern MetaPathFinder protocol (find_spec) is required on Python 3.12+.
+# The legacy find_module / load_module pair is no longer consulted for ordinary
+# top-level imports, so a blocker written against the old protocol silently
+# fails to intercept and the contract tests become no-ops.
 _SCRIPT = textwrap.dedent(
     """
     import sys
+    from importlib.machinery import ModuleSpec
 
     BLOCKED = {blocked!r}
 
     class _Blocker:
-        def find_module(self, name, path=None):
-            return self if name.split(".")[0] in BLOCKED else None
+        def find_spec(self, name, path=None, target=None):
+            if name.split(".")[0] in BLOCKED:
+                return ModuleSpec(name, self)
+            return None
 
-        def load_module(self, name):
-            raise ImportError("blocked: " + name)
+        def create_module(self, spec):
+            return None
+
+        def exec_module(self, module):
+            raise ImportError("blocked: " + module.__name__)
 
     sys.meta_path.insert(0, _Blocker())
 

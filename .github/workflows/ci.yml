@@ -40,16 +40,23 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
-      # Fail if any test was skipped: a skip in CI means a dependency is missing and
-      # a guarantee went unverified. Locally skipping is fine; in CI it is a gap.
-      - name: Assert no tests were skipped
+      # Some skips are intentional even after optional deps are installed:
+      # the two cryptography-absent path tests in test_persistence.py call
+      # skipTest when cryptography *is* importable. Those are expected.
+      # Any higher skip count means a real optional-dependency gap (e.g.
+      # webapp tests still skipped) and must fail the build.
+      - name: Assert only intentional skips remain
         run: |
           python -m unittest discover -s tests 2>&1 | tee /tmp/out.txt
-          if grep -qE 'skipped=[1-9]' /tmp/out.txt; then
-            echo "::error::tests were skipped in CI — an optional dependency is missing"
-            grep -oE 'skipped=[0-9]+' /tmp/out.txt
+          # Extract the skip count from the final summary line
+          SKIPPED=$(grep -oE 'skipped=[0-9]+' /tmp/out.txt | tail -1 | cut -d= -f2 || echo 0)
+          # Allow the known pair of intentional cryptography-absent skips
+          if [ "${SKIPPED:-0}" -gt 2 ]; then
+            echo "::error::unexpected tests were skipped in CI (got ${SKIPPED}, expected at most 2 intentional)"
+            grep -E 'skipped|SKIP' /tmp/out.txt || true
             exit 1
           fi
+          echo "OK: skip count=${SKIPPED} (at most 2 intentional cryptography-absent skips allowed)"
 
       # Exits non-zero if any safety or capability gate fails.
       - name: Run evaluation gate

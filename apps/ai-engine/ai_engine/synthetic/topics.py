@@ -57,7 +57,13 @@ TOPIC_TEMPLATES: tuple[TopicTemplate, ...] = (
         slot=("decision", "made"),           # "...or a decision someone made?"
         areas=("friction",),
         tier=3,
-        core="the director's approval decision always holds up the whole flow for days",
+        # Carries an explicit figure ("three days"). The generated corpus otherwise
+        # contains no numbers at all, which left the number-substitution mutator with
+        # nothing to substitute — so the entailment gate's quantity check had no case
+        # to answer and the fuzz property recorded zero runs while appearing healthy.
+        # Both holders of this topic share the core, so the figure agrees between
+        # them; the denial carries no figure, so it still conflicts on polarity alone.
+        core="the director's approval decision always holds up the whole flow for three days",
         variants=("On my desk,", "For my team,", "In my area,", "Every week,",
                   "From where I sit,"),
         denial="the director's approval decision never holds up the flow for anyone",

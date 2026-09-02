@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .config import get_llm_client, load_settings
+from .config import get_llm_client, load_settings, preflight_model
 from .interview.engine import InterviewEngine
 from .interview.session import DEFAULT_OBJECTIVE, run_interview
 from .persistence.event_log import EventLog
@@ -48,6 +48,9 @@ def main(argv: list[str] | None = None) -> int:
     # Refuse to serve real interviews from an unsafe configuration (mock cognition
     # or plaintext testimony). No-op in dev.
     settings.assert_deployable()
+    # Prove the configured model answers before a participant is on the other end.
+    # No-op in mock mode; one cheap call otherwise.
+    preflight_model(settings)
     max_turns = args.max_turns or settings.max_turns
     llm = get_llm_client(settings)
 

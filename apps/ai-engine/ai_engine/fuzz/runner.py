@@ -7,12 +7,15 @@ from dataclasses import dataclass, field
 
 from ..evidence.entailment import Entailment, HeuristicEntailmentChecker
 from ..evidence.grounding import _canon, ground_proposal
+from ..lexicon import has_negation, quantities
 from ..evidence.model import RawProposal
 from ..transcript.model import Speaker
 from .corpus import QuoteSpan, build_transcripts, collect_spans, interviewer_spans
 from .mutations import (
     COSMETIC_MUTATORS,
     SEMANTIC_MUTATORS,
+    _change_number,
+    _negate,
     cosmetic_applies,
     is_contiguous_sublist,
     normalized_words,
@@ -188,6 +191,44 @@ def _check_entailment(span: QuoteSpan, report: FuzzReport, rng: random.Random) -
     if checker.check(claim, quote).verdict is Entailment.SUPPORTED:
         report.fail(Violation("entailment_rejects_escalation", "false_accept",
                               f"escalation admitted: {injection!r}", quote, claim))
+
+    # Polarity inversion must be rejected. Note what is mutated: the CLAIM, while
+    # the quote is held intact. The negate/change_number mutators were already in
+    # this module, but only ever applied to the *quote* — which tests grounding
+    # (a negated quote is no longer verbatim) and leaves the entailment gate's two
+    # real failure modes unexercised. Thousands of passing checks read as coverage
+    # of a gate that was never asked the questions it fails.
+    # The precondition is load-bearing, not a convenience: a surface checker reads
+    # polarity as present-or-absent, so it cannot see a *second* negation added to
+    # an already-negated sentence ("nothing jumps out" -> "nothing never jumps
+    # out"). Counting cues instead would trade this blind spot for a worse one,
+    # rejecting honest restatements that use one cue where the quote used two.
+    # Asserting only what a surface gate can actually deliver keeps the property
+    # meaningful; double negation is one of the cases a trained NLI model is for.
+    if not has_negation(quote):
+        inverted = _negate(quote, rng)
+        if inverted is not None and inverted != quote:
+            report.record("entailment_rejects_negation")
+            if checker.check(inverted, quote).verdict is Entailment.SUPPORTED:
+                report.fail(Violation("entailment_rejects_negation", "false_accept",
+                                      "a claim that negates its own quote was admitted",
+                                      quote, inverted))
+
+    # A figure the quote does not contain must be rejected: a claim can keep every
+    # word and change the number, which is what turns into a business case.
+    # Preconditioned on the quote stating an actual figure, for the same reason the
+    # negation property is preconditioned: a unit with no number ("it drags on for
+    # weeks") is emphasis, not a quantity, and treating every bare time-word as one
+    # made two people agreeing about invoice sign-off read as a numeric dispute.
+    # The gate compares figures; the property asks only about figures.
+    if quantities(quote):
+        renumbered = _change_number(quote, rng)
+        if renumbered is not None and renumbered != quote:
+            report.record("entailment_rejects_number_change")
+            if checker.check(renumbered, quote).verdict is Entailment.SUPPORTED:
+                report.fail(Violation("entailment_rejects_number_change", "false_accept",
+                                      "a claim asserting an unstated quantity was admitted",
+                                      quote, renumbered))
 
 
 def _check_robustness(report: FuzzReport, transcript) -> None:

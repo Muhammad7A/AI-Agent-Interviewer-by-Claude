@@ -188,7 +188,7 @@ python3 -m ai_engine.employee   # employee surface      → http://127.0.0.1:810
 | `ANTHROPIC_API_KEY` | **mock mode** — scripted interviewer | live model |
 | `ONTORA_STORE_KEY` | testimony stored **in plaintext** | encrypted at rest |
 | `ONTORA_ENV` | `dev` — mocks and plaintext allowed | `production` — **refuses to start** without both of the above |
-| `ONTORA_MODEL` | `claude-opus-4-8` | your choice |
+| `ONTORA_MODEL` | `claude-sonnet-5` | your choice — checked at startup, see below |
 | `ONTORA_DATA_DIR` | `data/interviews` | storage location |
 
 Install the matching extras with `pip install -e '.[live,secure,web]'`.

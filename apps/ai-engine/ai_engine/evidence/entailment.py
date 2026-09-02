@@ -13,8 +13,14 @@ semantic confabulation.
 
 The strong version of this is a natural-language-entailment judgement that needs a
 live model (``LlmEntailmentChecker``). Offline we use a deliberately *conservative*
-heuristic (``HeuristicEntailmentChecker``) that catches the dangerous case — a
-mild quote escalated into an accusation — without pretending to full NLI.
+heuristic (``HeuristicEntailmentChecker``) that catches the three mechanical
+inversions — an accusation the quote never made, a polarity flip, and an invented
+figure — without pretending to full NLI.
+
+The offline checker is a floor, not a ceiling. It compares word membership and
+surface cues, so a fluent paraphrase that changes scope or subject still passes.
+A trained fact-checking model (MiniCheck, AlignScore) drops in behind the same
+``EntailmentChecker`` Protocol and is the intended production answer.
 """
 from __future__ import annotations
 
@@ -24,6 +30,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, runtime_checkable
 
+from ..lexicon import invents_quantity, negation_disagrees
 from ..llm.client import LLMClient
 from ..transcript.model import Transcript
 from .model import Claim
@@ -89,7 +96,17 @@ def _severe_stem(word: str) -> str | None:
 
 
 class HeuristicEntailmentChecker:
-    """Offline, conservative. Flags escalation and near-zero overlap only."""
+    """Offline, conservative. Rejects escalation, polarity inversion, invented
+    quantities, and near-zero overlap.
+
+    It is a **smoke test, not a substitute for entailment.** It reasons about word
+    membership, polarity cues and figures — never about meaning — so a paraphrase
+    that reverses a claim's scope or subject will pass it. Treat a SUPPORTED
+    verdict from this checker as "no mechanical inversion detected", not as
+    "verified". Where a real judgement is required, supply an
+    :class:`LlmEntailmentChecker` (or a trained NLI model behind the same
+    Protocol) via :func:`make_checker`.
+    """
 
     def check(self, statement: str, quote: str) -> EntailmentResult:
         claim_words = _content_words(statement)
@@ -105,7 +122,33 @@ class HeuristicEntailmentChecker:
                     "heuristic",
                 )
 
-        # 2. Near-zero overlap: the claim's words barely appear in the quote.
+        # 2. Polarity inversion. Word overlap cannot see negation, so "I don't
+        # think the approval step is a problem" and "the approval step is a
+        # problem" scored as a near-perfect match — the claim asserting the
+        # opposite of its own evidence, carrying a genuine verbatim quote. That
+        # is the worst output this system can produce, so it is checked before
+        # overlap rather than after.
+        if negation_disagrees(statement, quote):
+            return EntailmentResult(
+                Entailment.NOT_SUPPORTED,
+                "claim and quote disagree in polarity (one negates, the other does not)",
+                "heuristic",
+            )
+
+        # 3. Invented quantity. Content words are letters-only, so every figure —
+        # a duration, a headcount, a cost — passed unchecked and "three days"
+        # could become "thirty days" with the overlap barely moving. Numbers are
+        # what become business cases downstream, so a figure the quote does not
+        # contain is a fabrication regardless of how well the words match.
+        invented = invents_quantity(statement, quote)
+        if invented is not None:
+            return EntailmentResult(
+                Entailment.NOT_SUPPORTED,
+                f"claim asserts the quantity '{invented}', which is not in the quote",
+                "heuristic",
+            )
+
+        # 4. Near-zero overlap: the claim's words barely appear in the quote.
         if claim_words:
             overlap = len(claim_words & quote_words) / len(claim_words)
             if overlap < _MIN_OVERLAP:

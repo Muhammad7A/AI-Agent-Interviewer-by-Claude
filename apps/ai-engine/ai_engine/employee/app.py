@@ -190,6 +190,13 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
             session = _revive(token, invitation)
         if invitation is None or invitation.is_finished or session is None:
             return _unavailable()
+        if len(answer) > settings.max_answer_chars:
+            # An oversized paste would be recorded verbatim and then fail every
+            # future model call permanently — wedging the interview with no way
+            # to retract it. Refuse it before it touches the transcript.
+            return HTMLResponse(
+                views.answer_too_long(token, settings.max_answer_chars),
+                status_code=413)
         if not session.driver.closed and session.question is not None:
             session.driver.submit_answer(answer)
             try:
@@ -213,8 +220,13 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
         if invitation is None or invitation.is_finished or session is None:
             return _unavailable()
         transcript = session.driver.finish()
-        TranscriptStore(settings.data_dir, settings.cipher()).save(
-            transcript, overwrite=True)
+        # The transcript is finalized here for the first time; if it somehow
+        # already exists, write-once immutability wins and the completed page
+        # below is still the right response.
+        try:
+            TranscriptStore(settings.data_dir, settings.cipher()).save(transcript)
+        except FileExistsError:
+            pass
         # The draft has become a consented record; the working copy goes.
         sessions_store().delete(token)
         store().set_status(token, InvitationStatus.COMPLETED,
@@ -226,6 +238,12 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
         invitation = store().get(token)
         if invitation is None:
             return _unavailable()
+        if invitation.is_finished:
+            # A completed interview cannot be withdrawn post hoc: the testimony
+            # was consented to and stored. Telling someone "nothing was stored"
+            # here would be a lie — the honest answer is that withdrawal no
+            # longer applies and erasure goes through the consultant.
+            return HTMLResponse(views.already_submitted(), status_code=409)
         # Drop the in-flight interview without ever storing it. The right to withdraw
         # is only real if withdrawing leaves nothing behind.
         sessions.live.pop(token, None)

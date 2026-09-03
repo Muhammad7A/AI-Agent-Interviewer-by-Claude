@@ -92,6 +92,11 @@ class Settings:
     max_turns: int = int(os.environ.get("ONTORA_MAX_TURNS", "14"))
     temperature: float = float(os.environ.get("ONTORA_TEMPERATURE", "0.4"))
     data_dir: Path = Path(os.environ.get("ONTORA_DATA_DIR", "data/interviews"))
+    #: An oversized answer would be appended to the transcript verbatim and sent
+    #: as part of every later model call — a multi-MB paste guarantees a permanent
+    #: request failure on every future turn, wedging the interview with no way to
+    #: retract the answer. Capped at the web layer, where the input arrives.
+    max_answer_chars: int = int(os.environ.get("ONTORA_MAX_ANSWER_CHARS", "20000"))
 
     @property
     def has_live_model(self) -> bool:

@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from ..config import load_settings
+from ..config import ModelUnavailable, load_settings, preflight_model
 from .app import create_employee_app
 
 
@@ -22,6 +22,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     settings = load_settings()
+    # Prove the configured model answers before anyone schedules an interview
+    # against this server — no-op in mock mode. A bad ONTORA_MODEL otherwise
+    # surfaces at the participant's first question, where they can do nothing.
+    try:
+        preflight_model(settings)
+    except ModelUnavailable as exc:
+        print(f"# {exc}", file=sys.stderr)
+        return 1
     print(f"# Ontora interview surface — {settings.posture_banner()}")
     print(f"#   data dir: {settings.data_dir}")
     print("#   append-only: this app cannot read any interview or reach the workspace")

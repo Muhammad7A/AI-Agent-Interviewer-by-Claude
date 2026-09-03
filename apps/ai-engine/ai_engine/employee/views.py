@@ -174,6 +174,39 @@ def withdrawn() -> str:
     return layout("Discarded", body)
 
 
+def already_submitted() -> str:
+    """A withdrawal request on a completed interview, told honestly.
+
+    The testimony was consented to and stored; claiming otherwise would be the
+    worst thing this page could say. Erasure now goes through the consultant,
+    not through this link.
+    """
+    body = (
+        "<h1>That interview is already complete</h1>"
+        '<p class="lede">You submitted this interview, so it has been stored and '
+        "handed over as you agreed. It cannot be withdrawn from this page.</p>"
+        '<p class="small">If you want your answers removed, contact the '
+        "interviewing consultant and ask for erasure — they can do that on your "
+        "behalf.</p>"
+    )
+    return layout("Already submitted", body)
+
+
+def answer_too_long(token: str, max_chars: int) -> str:
+    """A refused oversized answer — recoverable, and nothing was recorded."""
+    body = (
+        "<h1>That answer is too long</h1>"
+        f'<p class="lede">Answers are capped at {max_chars:,} characters. Your '
+        "answer was not recorded — please split it into shorter parts and "
+        "answer again.</p>"
+        '<div class="card">'
+        f'<form method="get" action="/i/{esc(token)}">'
+        '<button type="submit">Back to the question</button></form>'
+        "</div>"
+    )
+    return layout("Answer too long", body)
+
+
 def temporarily_unavailable(token: str) -> str:
     """A model failure, told honestly: recoverable, and nothing was lost.
 

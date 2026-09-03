@@ -28,6 +28,7 @@ from ..evidence.tagger import EvidenceTagger
 from ..interview.driver import InterviewDriver
 from ..interview.engine import InterviewEngine
 from ..interview.session import DEFAULT_OBJECTIVE
+from ..llm.retry import LLMError
 from ..persistence.event_log import EventLog
 from ..persistence.invitations import InvitationStore
 from ..persistence.transcript_store import TranscriptNotFound, TranscriptStore
@@ -49,6 +50,9 @@ class LiveInterview:
     participant_label: str        # pseudonym — the real name is not kept here
     subject: object | None = None  # a simulated persona, when demoing
     question: str | None = None
+    #: Set when a model call failed after an answer was recorded. The interview
+    #: is recoverable, not over.
+    stalled: bool = False
 
 
 @dataclass
@@ -177,7 +181,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             subject = SimulatedInterviewee(default_persona("open"), llm=llm)
 
         item = LiveInterview(driver=driver, participant_label=alias, subject=subject)
-        item.question = driver.next_question()
+        try:
+            item.question = driver.next_question()
+        except LLMError:
+            # Nothing is registered, so the consultant can simply retry; the
+            # transcript had no answers yet.
+            return HTMLResponse(views.message(
+                title="Model temporarily unavailable",
+                text="The interview could not be started — no answers were "
+                     "recorded. Try again.",
+                posture=w.posture()[0], warn=w.posture()[1]), status_code=503)
         if subject is not None:
             _run_simulated(item)
         w.live[transcript.id] = item
@@ -199,6 +212,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 title="Interview not found",
                 text="It may already be finalised — check the stored interviews.",
                 posture=posture, warn=warn), status_code=404)
+        if item.stalled and not item.driver.closed:
+            # A retry after a model failure: the answer is recorded, only the
+            # next question was missing.
+            try:
+                item.question = item.driver.next_question()
+                item.stalled = False
+            except LLMError:
+                return HTMLResponse(views.message(
+                    title="Model temporarily unavailable",
+                    text="The interview is intact — refresh to retry. Nothing "
+                         "needs to be re-entered.",
+                    posture=posture, warn=warn), status_code=503)
         segments = [{"id": s.id, "speaker": s.speaker.value, "text": s.text}
                     for s in item.driver.transcript.segments]
         return HTMLResponse(views.runner(
@@ -211,12 +236,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/interviews/{interview_id}/answer")
     def answer(request: Request, interview_id: str,
-               answer: str = Form(...)) -> RedirectResponse:
+               answer: str = Form(...)):
         w = ws(request)
         item = w.live.get(interview_id)
         if item is not None and not item.driver.closed and item.question is not None:
+            if len(answer) > w.settings.max_answer_chars:
+                return HTMLResponse(views.message(
+                    title="Answer too long",
+                    text=f"Answers are capped at {w.settings.max_answer_chars} "
+                         "characters. Split it into parts and answer again — "
+                         "nothing was recorded.",
+                    posture=w.posture()[0], warn=w.posture()[1]), status_code=413)
             item.driver.submit_answer(answer)
-            item.question = item.driver.next_question()
+            try:
+                item.question = item.driver.next_question()
+            except LLMError:
+                # The answer is recorded; only the next question failed. The
+                # interview page retries on the next view rather than losing
+                # the session to one transient model failure.
+                item.question = None
+                item.stalled = True
         return RedirectResponse(f"/interviews/{interview_id}", status_code=303)
 
     @app.post("/interviews/{interview_id}/finish")
@@ -226,8 +265,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if item is None:
             return RedirectResponse("/", status_code=303)
         transcript = item.driver.finish()
-        # Store it, so every quote stays verifiable after this process exits.
-        w.store.save(transcript, overwrite=True)
+        # Store it, so every quote stays verifiable after this process exits. The
+        # transcript is finalized here for the first time, so it cannot already
+        # exist — a second save would mean double-handling, and write-once
+        # immutability is the store's contract, not an obstacle to route around.
+        try:
+            w.store.save(transcript)
+        except FileExistsError:
+            pass  # already stored; the review page below is still the right place
         return RedirectResponse(f"/transcripts/{transcript.id}/review", status_code=303)
 
     # -- transcript & review ----------------------------------------------

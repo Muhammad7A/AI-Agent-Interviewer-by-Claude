@@ -111,11 +111,21 @@ class TranscriptStore:
     def encrypted(self) -> bool:
         return self._cipher.protects_at_rest
 
+    def _validate_id(self, transcript_id: str) -> None:
+        """The id is a filename built straight from route parameters, so anything
+        containing a separator is refused outright — the same rule as every other
+        store in this package. (TranscriptStore was the one that skipped it.)"""
+        if (not transcript_id or "/" in transcript_id or "\\" in transcript_id
+                or transcript_id.startswith(".")):
+            raise ValueError("invalid transcript id")
+
     def _path(self, transcript_id: str) -> Path:
+        self._validate_id(transcript_id)
         suffix = _ENCRYPTED_SUFFIX if self.encrypted else _PLAIN_SUFFIX
         return self._dir / f"{transcript_id}{suffix}"
 
     def exists(self, transcript_id: str) -> bool:
+        self._validate_id(transcript_id)
         return any(
             (self._dir / f"{transcript_id}{suffix}").exists()
             for suffix in (_ENCRYPTED_SUFFIX, _PLAIN_SUFFIX)
@@ -134,6 +144,7 @@ class TranscriptStore:
         return path
 
     def load(self, transcript_id: str) -> Transcript:
+        self._validate_id(transcript_id)
         for suffix, needs_cipher in ((_ENCRYPTED_SUFFIX, True), (_PLAIN_SUFFIX, False)):
             path = self._dir / f"{transcript_id}{suffix}"
             if not path.exists():

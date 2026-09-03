@@ -119,9 +119,10 @@ def _check_cosmetic(span: QuoteSpan, report: FuzzReport) -> None:
         resolved = claim.evidence[0].resolve(span.transcript)
         want = normalized_words(mutated)
         got = normalized_words(resolved)
-        # The matcher may legitimately drop trailing punctuation, which can shed a
-        # final token when that token was punctuation-only.
-        if got != want and got != want[: len(got)]:
+        # Compared as exact word sequences: normalized_words already erases
+        # punctuation-only tokens on both sides, so a matcher that dropped the
+        # tail of the quote is a real integrity failure, not a tolerance case.
+        if got != want:
             report.fail(Violation(
                 "evidence_offsets_are_faithful", "integrity",
                 f"[{name}] resolved to {resolved!r}, expected the span for {mutated!r}",
@@ -252,6 +253,23 @@ def _check_entailment(span: QuoteSpan, report: FuzzReport, rng: random.Random) -
                 report.fail(Violation("entailment_rejects_number_change", "false_accept",
                                       "a claim asserting an unstated quantity was admitted",
                                       quote, renumbered))
+
+    # Canonicalization parity with the negation probe above, for figures: this
+    # shape is probed deterministically rather than hoped for from the corpus, so
+    # the quantity property cannot read as healthy while never running.
+    figure_quote = "Approvals take three days."
+    figure_claim = "Approvals take eleven days."
+    report.record("entailment_rejects_number_change")
+    if checker.check(figure_claim, figure_quote).verdict is Entailment.SUPPORTED:
+        report.fail(Violation(
+            "entailment_rejects_number_change", "false_accept",
+            "a claim changing a stated figure was admitted", figure_quote, figure_claim))
+    report.record("entailment_accepts_faithful")
+    if checker.check(figure_quote, figure_quote).verdict is not Entailment.SUPPORTED:
+        report.fail(Violation(
+            "entailment_accepts_faithful", "false_reject",
+            "a faithful restatement of a figure was rejected",
+            figure_quote, figure_quote))
 
 
 def _check_robustness(report: FuzzReport, transcript) -> None:

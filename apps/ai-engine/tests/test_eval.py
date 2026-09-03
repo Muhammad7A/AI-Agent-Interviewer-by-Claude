@@ -20,6 +20,20 @@ class MatchingTest(unittest.TestCase):
         truth = default_persona().latent_truths[1]
         self.assertLess(match_score("We had a nice team lunch on Friday.", truth), 2)
 
+    def test_keywords_require_a_word_boundary(self):
+        # The shadow-AI truth keys on "ai"; substring matching scored
+        # "I drafted the email while we waited on legal." as a match — "ai"
+        # inside "email" and "waited" — crediting elicitation that never
+        # happened. Keywords are stems (leading boundary only), so "AI used
+        # weekly" still matches while "said/email/fail" cannot.
+        truth = default_persona().latent_truths[1]
+        text = "I drafted the email while we waited on legal."
+        self.assertLess(match_score(text, truth), 2)
+        # One incidental stem hit ("tool") is fine — it takes the threshold's
+        # TWO hits to count as elicited, which neither sentence reaches.
+        self.assertLess(
+            match_score("Our team said the tool maintained itself.", truth), 2)
+
     def test_greedy_assignment_is_one_to_one(self):
         truths = default_persona().latent_truths
         # Two findings quoting two different truths -> two distinct captures.

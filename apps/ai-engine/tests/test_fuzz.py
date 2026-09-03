@@ -74,6 +74,8 @@ class SafetyGateAuditTest(unittest.TestCase):
             "evidence_offsets_are_faithful",
             "entailment_accepts_faithful",
             "entailment_rejects_escalation",
+            "entailment_rejects_negation",
+            "entailment_rejects_number_change",
             "gates_never_crash",
         ):
             with self.subTest(prop=prop):

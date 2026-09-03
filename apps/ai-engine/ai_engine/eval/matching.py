@@ -21,12 +21,24 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text.lower()).strip()
 
 
+def _kw_hits(keyword: str, low: str) -> bool:
+    """Whether a truth keyword occurs as the start of a word in ``low``.
+
+    Keywords are stems ("summar", "repetit"), so there is deliberately no
+    trailing boundary — but there must be a LEADING one, or the shadow-AI
+    truth's keyword "ai" fired inside "email/said/fail/wait" and a sentence
+    with no AI content marked the truth as elicited. In live mode every recall,
+    precision, and candor number flows through this matcher.
+    """
+    return re.search(rf"(?<!\w){re.escape(keyword.lower())}", low) is not None
+
+
 def match_score(text: str, truth: LatentTruth) -> int:
     low = _norm(text)
     statement = _norm(truth.statement)
     if statement and statement in low:
         return _STATEMENT_SCORE
-    return sum(1 for kw in truth.keywords if kw.lower() in low)
+    return sum(1 for kw in truth.keywords if _kw_hits(kw, low))
 
 
 def truth_in_texts(truth: LatentTruth, texts: list[str]) -> bool:

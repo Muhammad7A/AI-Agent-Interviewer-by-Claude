@@ -75,6 +75,9 @@ class SessionStore:
     def __init__(self, data_dir: Path | str, cipher: Cipher | None = None) -> None:
         self._dir = Path(data_dir) / "sessions"
         self._cipher = cipher or NullCipher()
+        from .crypto import assert_encrypted_in_production
+
+        assert_encrypted_in_production(self._cipher, "the session-draft store")
 
     @property
     def directory(self) -> Path:

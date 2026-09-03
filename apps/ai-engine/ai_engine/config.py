@@ -58,9 +58,22 @@ class ConfigurationError(RuntimeError):
     """Raised when the runtime is not safe to serve real interviews."""
 
 
-def _runtime_from_env() -> Runtime:
+def runtime_from_env() -> Runtime:
+    """Parse ``ONTORA_ENV`` — and refuse an unrecognized value.
+
+    The whole point of the production posture is refusing unsafe startup, so a
+    typo'd value ("produnction") must be an error, not silently mean dev: a guard
+    that fails open is a request, not a guard.
+    """
     raw = (os.environ.get(ENV_VAR) or "dev").strip().lower()
-    return Runtime.PRODUCTION if raw in ("production", "prod") else Runtime.DEV
+    if raw in ("production", "prod"):
+        return Runtime.PRODUCTION
+    if raw in ("dev", "development"):
+        return Runtime.DEV
+    raise ConfigurationError(
+        f"{ENV_VAR}={raw!r} is not a recognized runtime — use 'dev' or "
+        f"'production'. A typo here would silently disable the production "
+        f"posture, so it is refused rather than ignored.")
 
 
 @dataclass(frozen=True)
@@ -72,7 +85,7 @@ class Settings:
     store_key: str | None = field(
         default_factory=lambda: os.environ.get(KEY_ENV) or None
     )
-    runtime: Runtime = field(default_factory=_runtime_from_env)
+    runtime: Runtime = field(default_factory=runtime_from_env)
     #: Reuse deterministic derived results across page views. Off only for
     #: benchmarking what an uncached run actually costs.
     cache_derived: bool = os.environ.get("ONTORA_CACHE", "1") not in ("0", "false", "no")

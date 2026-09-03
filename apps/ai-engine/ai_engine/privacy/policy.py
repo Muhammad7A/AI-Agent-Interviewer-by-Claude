@@ -52,6 +52,38 @@ class ReleasePolicy:
     #: quote marks removed, because the synthesised statement carries the same words.
     aggregate_only: bool = True
 
+    def __post_init__(self) -> None:
+        """The employer guarantee is structural, not conventional.
+
+        The policy is data so it can be printed on a consent form and tested — which
+        also means a caller could construct an employer-shaped policy with the
+        firewall dialed down field by field. The employer defaults above are not
+        preferences; an EMPLOYER policy that weakens any of them is refused, so the
+        guarantee survives whoever builds the policy.
+        """
+        if self.audience is not Audience.EMPLOYER:
+            return
+        violations = []
+        if not self.aggregate_only:
+            violations.append("aggregate_only must be on: a per-member statement "
+                              "carries the same words as a quote")
+        if self.verbatim_max_tier > 1:
+            violations.append("verbatim quotes above tier 1 identify their author")
+        if self.attribute_max_tier > 1:
+            violations.append("attribution above tier 1 builds a profile")
+        if self.reveal_contradiction_sides:
+            violations.append("contradiction sides identify dissenters")
+        if self.reveal_per_member_confidence:
+            violations.append("per-member confidence reveals the split")
+        if not self.suppress_below_k:
+            violations.append("topics below k must be suppressed")
+        if self.k_anonymity < 2:
+            violations.append("k below 2 is not anonymity at all")
+        if violations:
+            raise ValueError(
+                "an EMPLOYER release policy cannot weaken the firewall: "
+                + "; ".join(violations))
+
     @classmethod
     def for_consultant(cls) -> "ReleasePolicy":
         """Unredacted. The consultant is inside the firewall, not outside it.

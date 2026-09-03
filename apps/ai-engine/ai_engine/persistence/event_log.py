@@ -16,6 +16,17 @@ from typing import Any
 from .crypto import Cipher, NullCipher
 
 
+class TamperedEventLog(RuntimeError):
+    """A log line failed authentication mid-file — the log was modified or corrupted.
+
+    Distinguished from a *torn final line* (a process that died mid-append), which
+    is tolerated: truncation damage lands at the end of an append-only file, so an
+    authentication failure on any earlier line is tampering, not a crash. Swallowing
+    it would erase an event rather than surface the modification — the exact
+    opposite of what authenticated encryption is for.
+    """
+
+
 class EventLog:
     """Append-only sink for ONE dataset layer.
 
@@ -40,6 +51,9 @@ class EventLog:
         self._dir.mkdir(parents=True, exist_ok=True)
         self._layer = layer
         self._cipher = cipher or NullCipher()
+        from .crypto import assert_encrypted_in_production
+
+        assert_encrypted_in_production(self._cipher, f"the {layer} event log")
         suffix = "jsonl.enc" if self._cipher.protects_at_rest else "jsonl"
         self._path = self._dir / f"{interview_id}.{layer}.{suffix}"
         self._interview_id = interview_id
@@ -109,6 +123,11 @@ def read_events(path: Path, cipher: "Cipher | None" = None) -> list[dict]:
 
     Reads what is actually on disk rather than what the caller is configured for, so
     plaintext logs written during development still load once a key is introduced.
+
+    Tampering is loud: a line that fails authentication anywhere but the end of the
+    file raises :class:`TamperedEventLog` rather than quietly dropping the event it
+    used to carry. Only the final line may fail silently — a process that died
+    mid-append leaves a torn line there, and that is damage, not tampering.
     """
     path = Path(path)
     if not path.exists():
@@ -118,13 +137,26 @@ def read_events(path: Path, cipher: "Cipher | None" = None) -> list[dict]:
         raise ValueError(f"{path.name} is encrypted but no cipher was supplied")
 
     records: list[dict] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
-            continue
+    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()
+             if line.strip()]
+    for index, line in enumerate(lines):
+        last = index == len(lines) - 1
+        if encrypted:
+            try:
+                raw = cipher.decrypt(line.encode("ascii")).decode("utf-8")
+            except Exception as exc:
+                if last:
+                    continue  # torn final line: the process died mid-append
+                raise TamperedEventLog(
+                    f"line {index + 1} of {path.name} failed authentication — "
+                    f"the log was modified or corrupted") from exc
+        else:
+            raw = line
         try:
-            raw = cipher.decrypt(line.encode("ascii")).decode("utf-8") if encrypted else line
             records.append(json.loads(raw))
-        except Exception:
-            continue  # a partial or corrupt line must not lose the rest of the log
+        except json.JSONDecodeError as exc:
+            if last:
+                continue
+            raise TamperedEventLog(
+                f"line {index + 1} of {path.name} is not a valid event record") from exc
     return records

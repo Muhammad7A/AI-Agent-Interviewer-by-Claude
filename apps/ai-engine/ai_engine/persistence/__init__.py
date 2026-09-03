@@ -1,7 +1,7 @@
 """Durable storage: the dataset event log and the transcript store."""
 
 from .crypto import Cipher, CipherUnavailable, FernetCipher, NullCipher, make_cipher
-from .event_log import EventLog, NullEventLog
+from .event_log import EventLog, NullEventLog, TamperedEventLog
 from .transcript_store import TranscriptNotFound, TranscriptStore
 
 __all__ = [
@@ -11,6 +11,7 @@ __all__ = [
     "FernetCipher",
     "NullCipher",
     "NullEventLog",
+    "TamperedEventLog",
     "TranscriptNotFound",
     "TranscriptStore",
     "make_cipher",

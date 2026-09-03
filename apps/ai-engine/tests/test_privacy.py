@@ -98,6 +98,27 @@ class ReleasePolicyTest(unittest.TestCase):
         self.assertFalse(pol.aggregate_only)
         self.assertTrue(pol.reveal_contradiction_sides)
 
+    def test_an_employer_policy_cannot_be_constructed_weakened(self):
+        # The employer defaults are a guarantee, not a preference: no caller gets
+        # to build an employer-shaped policy with the firewall dialed down.
+        weakenings = [
+            {"aggregate_only": False},
+            {"verbatim_max_tier": 4},
+            {"attribute_max_tier": 3},
+            {"reveal_contradiction_sides": True},
+            {"reveal_per_member_confidence": True},
+            {"suppress_below_k": False},
+            {"k_anonymity": 1},
+        ]
+        for kwargs in weakenings:
+            with self.subTest(**kwargs):
+                with self.assertRaises(ValueError):
+                    ReleasePolicy(audience=Audience.EMPLOYER, **kwargs)
+
+    def test_consultant_policy_may_use_the_full_ladder(self):
+        pol = ReleasePolicy.for_consultant()
+        self.assertEqual(pol.verbatim_max_tier, 4)
+
 
 class ReleaseGateTest(unittest.TestCase):
     def _agg(self, findings):
@@ -109,6 +130,20 @@ class ReleaseGateTest(unittest.TestCase):
         self.assertEqual(pkg.topics, [])
         self.assertEqual(len(pkg.suppressions), 1)
         self.assertIn("k-anonymity", pkg.suppressions[0].reason)
+
+    def test_suppression_does_not_disclose_the_exact_count(self):
+        # The employer already knows the topic exists; the ledger must not also
+        # tell them how many people had it — a sub-k size narrows the anonymity
+        # set the firewall just refused to name.
+        agg_one = self._agg([_pf("P-1", "The director's approval decision delays every job.")])
+        pkg = release(agg_one, policy=ReleasePolicy.for_employer(k_anonymity=3))
+        detail = pkg.suppressions[0].detail
+        self.assertNotIn("1 participant", detail)
+        self.assertNotIn("one participant", detail.lower())
+        self.assertIn("fewer than", detail)
+        rendered = render_release_report(pkg, org_name="X", interview_count=1)
+        self.assertNotIn("topic(s) were not released", rendered)
+        self.assertNotIn("**withheld:** 1", rendered)
 
     def test_topic_at_threshold_is_released(self):
         agg = self._agg([

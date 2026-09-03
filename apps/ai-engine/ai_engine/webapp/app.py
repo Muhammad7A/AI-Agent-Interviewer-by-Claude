@@ -84,7 +84,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Refuse to serve real interviews from an unsafe configuration.
     settings.assert_deployable()
 
-    workspace = Workspace(settings=settings, pseudonymizer=Pseudonymizer())
+    # The engagement's pseudonymizer survives restarts: a fresh salt per process
+    # would give the same person a new pseudonym after a restart, and two
+    # transcripts from one participant would then count as two voices in
+    # aggregation — quietly reporting a k the data does not have.
+    workspace = Workspace(settings=settings,
+                          pseudonymizer=Pseudonymizer.load_or_create(settings.data_dir))
     app = FastAPI(title="Ontora consultant workspace", docs_url=None, redoc_url=None)
     app.state.workspace = workspace
 
@@ -131,6 +136,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """
         w = ws(request)
         alias = w.pseudonymizer.pseudonym(participant.strip() or "unknown")
+        w.pseudonymizer.save_state(w.settings.data_dir)
         InvitationStore(w.settings.data_dir).create(pseudonym=alias)
         return RedirectResponse("/invitations", status_code=303)
 
@@ -153,6 +159,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         w = ws(request)
         # Pseudonymise at ingest: the real name goes no further than this call.
         alias = w.pseudonymizer.pseudonym(participant.strip() or "unknown")
+        w.pseudonymizer.save_state(w.settings.data_dir)
         transcript = Transcript(engagement_id="eng-local", tenant_id="tenant-local")
         transcript.interview_id = alias
 
@@ -387,9 +394,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             for f in _validated_findings(w, transcript) if f.is_reportable
         ]
         aggregation = aggregate(findings, make_relation_checker(get_llm_client(w.settings)))
-        # A single interview cannot satisfy k-anonymity; k=1 here is honest about
-        # that rather than pretending one voice is a group.
-        package = release(aggregation, policy=ReleasePolicy.for_employer(k_anonymity=1))
+        # The documented employer guarantee, not a weaker per-interview variant:
+        # one person is not a group, so a single transcript releases only
+        # suppressions — that is the page being honest, not broken.
+        package = release(aggregation, policy=ReleasePolicy.for_employer())
         markdown = render_release_report(package, org_name="This engagement",
                                          interview_count=1)
         return HTMLResponse(views.document(
@@ -418,12 +426,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     findings.append(participant_finding_from_claim(
                         f.claim, transcript, participant_id=alias, participant_name=alias))
         aggregation = aggregate(findings, make_relation_checker(get_llm_client(w.settings)))
-        package = release(aggregation, policy=ReleasePolicy.for_employer(k_anonymity=2))
+        package = release(aggregation, policy=ReleasePolicy.for_employer())
         markdown = render_release_report(package, org_name="This engagement",
                                          interview_count=count)
         return HTMLResponse(views.document(
             title="Engagement report (employer release)",
-            subtitle=f"{count} interviews · aggregated, k-anonymity 2",
+            subtitle=f"{count} interviews · aggregated, k-anonymity "
+                     f"{ReleasePolicy.for_employer().k_anonymity}",
             markdown=markdown, back="/", posture=posture, warn=warn,
             note="This is what the employer receives: group-level findings only, no "
                  "names, no verbatim quotes, and disagreements reported without sides."))

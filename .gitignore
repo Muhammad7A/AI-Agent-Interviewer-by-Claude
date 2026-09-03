@@ -34,3 +34,4 @@ data/
 # would defeat the entire privacy firewall in a single stroke.
 *.RESTRICTED.*
 identity-key*
+RESTRICTED/

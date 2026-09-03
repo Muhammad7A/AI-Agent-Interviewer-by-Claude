@@ -131,3 +131,21 @@ def make_cipher(key: str | None = None) -> Cipher:
     if not key:
         return NullCipher()
     return FernetCipher(key)
+
+
+def assert_encrypted_in_production(cipher: Cipher, what: str) -> None:
+    """Refuse a plaintext store when ``ONTORA_ENV=production``.
+
+    Called by every store that persists testimony-derived material, so the
+    at-rest guarantee holds at the persistence layer and not only at whatever
+    entry point remembered to call ``Settings.assert_deployable``. Deferred
+    import: ``config`` imports this package, so a module-level import would be
+    circular; the env parse stays single-homed in config.
+    """
+    from ..config import Runtime, runtime_from_env
+
+    if runtime_from_env() is Runtime.PRODUCTION and not cipher.protects_at_rest:
+        raise RuntimeError(
+            f"{what} would be written in plaintext, but ONTORA_ENV=production "
+            f"requires encryption at rest. Set {KEY_ENV} (and install the "
+            f"'secure' extra) before serving real interviews.")

@@ -84,8 +84,12 @@ def main(argv: list[str] | None = None) -> int:
                            cipher)
         print(f"\nWrote {path}"
               + ("" if cipher.protects_at_rest else "  ⚠ PLAINTEXT (dev only)"))
-        # The re-identification key is written separately, never with the report.
-        key_path = pseudonymizer.write_key(settings.data_dir / "identity-key.RESTRICTED.json")
+        # The re-identification key is written separately — its own restricted
+        # directory, never beside the deliverables — never with the report.
+        from ..privacy.identity import restricted_dir
+
+        key_path = pseudonymizer.write_key(
+            restricted_dir(settings.data_dir) / "identity-key.RESTRICTED.json")
         print(f"Wrote {key_path}  (RESTRICTED — consultant only)")
     return 0
 

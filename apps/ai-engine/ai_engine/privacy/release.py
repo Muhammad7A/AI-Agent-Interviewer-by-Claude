@@ -101,8 +101,12 @@ def _neutral_label(finding: AggregatedFinding) -> str:
     for member in finding.members:
         for word in content_words(member.statement):
             counts[word] += 1
-    threshold = 2 if len(finding.members) > 1 else 1
-    shared = [w for w, c in counts.most_common() if c >= threshold][:5]
+    # Vocabulary is only "shared" if two or more participants used it. With a single
+    # member, the longest member statement IS one person's sentence — the exact leak
+    # this label exists to prevent — so a one-person finding gets no vocabulary.
+    shared: list[str] = []
+    if len(finding.members) > 1:
+        shared = [w for w, c in counts.most_common() if c >= 2][:5]
     kind = finding.claim_type.replace("_", " ")
     if not shared:
         return f"{kind} (specifics withheld)"
@@ -118,8 +122,8 @@ def _release_topic(
         return None, Suppression(
             label=finding.claim_type,
             reason="below k-anonymity threshold",
-            detail=(f"a topic with {count} participant(s) cannot be released at "
-                    f"k={policy.k_anonymity}; too few voices to prevent identification"),
+            detail=(f"fewer than {policy.k_anonymity} participants discussed this, "
+                    f"so no group-level view can prevent identification"),
         )
 
     scores = _confidences(finding)

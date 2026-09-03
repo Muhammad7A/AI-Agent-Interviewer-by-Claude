@@ -21,7 +21,7 @@ def render_release_report(
     lines.append(f"- **Audience:** {policy.audience.value}")
     lines.append(f"- **Interviews:** {interview_count}")
     lines.append(f"- **Topics released:** {package.released_count}"
-                 + (f" · **withheld:** {len(package.suppressions)}"
+                 + (" · **some topics withheld**"
                     if package.suppressions else ""))
     lines.append("")
     lines.append(f"> {policy.summary()}")
@@ -87,10 +87,18 @@ def render_release_report(
     if package.suppressions:
         lines.append("## Withheld to protect confidentiality")
         lines.append("")
-        lines.append(f"{len(package.suppressions)} topic(s) were not released. The "
-                     f"reason is shown; the content is not.")
+        # How many topics were withheld is itself a signal — it bounds how many
+        # sensitive discussions happened and how many people had them — so the
+        # ledger reports the mechanism, not the arithmetic.
+        lines.append("Some topics were not released. Neither their content nor how "
+                     "many there are is disclosed; each entry below is one reason a "
+                     "topic class was withheld, not a count of findings.")
         lines.append("")
+        seen: set[str] = set()
         for sup in package.suppressions:
+            if sup.detail in seen:
+                continue
+            seen.add(sup.detail)
             lines.append(f"- **{sup.reason}** — {sup.detail}")
         lines.append("")
 

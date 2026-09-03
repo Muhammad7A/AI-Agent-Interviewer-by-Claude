@@ -78,13 +78,26 @@ class PlaintextLogTest(unittest.TestCase):
     def test_null_log_reads_empty(self):
         self.assertEqual(NullEventLog().read(), [])
 
-    def test_corrupt_line_does_not_lose_the_rest(self):
+    def test_a_torn_final_line_does_not_lose_the_rest(self):
+        # A process that died mid-append leaves one torn line at the end; the
+        # events before it still read. (A torn line mid-file is tampering, not a
+        # crash — that case is pinned loud in test_privacy_edges.py.)
+        log = EventLog(self.dir, "txn-1", layer="testimony")
+        log.emit("A", n=1)
+        with log.path.open("a", encoding="utf-8") as fh:
+            fh.write("{not json")
+        self.assertEqual([r["event"] for r in log.read()], ["A"])
+
+    def test_a_tampered_midfile_line_is_loud(self):
+        from ai_engine.persistence.event_log import TamperedEventLog
+
         log = EventLog(self.dir, "txn-1", layer="testimony")
         log.emit("A", n=1)
         with log.path.open("a", encoding="utf-8") as fh:
             fh.write("{not json\n")
         log.emit("B", n=2)
-        self.assertEqual([r["event"] for r in log.read()], ["A", "B"])
+        with self.assertRaises(TamperedEventLog):
+            log.read()
 
 
 class EncryptedLogTest(unittest.TestCase):

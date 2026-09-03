@@ -85,6 +85,31 @@ _DE_ESCALATE = (
     "ordinary day look like for you?"
 )
 
+# Reverse of the bank: exact question text -> (area, tier actually asked).
+# The bank text for (friction, 1..2) does not exist, so a LADDER at friction tier 1
+# phrases the tier-3 text; crediting the *move's* tier then recorded a tier-3
+# disclosure as tier 1 and friction needed repeated asks to count as covered. The
+# tier that matters is the one the words came from.
+_BANK_REVERSE: dict[str, tuple[str, int]] = {
+    text: (area, tier) for (area, tier), text in _BANK.items()
+}
+
+
+def question_area_index() -> dict[str, tuple[str, int | None]]:
+    """Which (area, tier) each known offline question text aims at.
+
+    Used by ``InterviewDriver.resume`` to restore what each replayed question was
+    targeting when no event log records it. Specificity probes stay on the topic's
+    current tier (``None`` = keep whatever was pending), and the de-escalation
+    text is deliberately absent — the safe area it drops to is chosen from state,
+    so text alone cannot recover it and replay keeps the previous topic.
+    """
+    index: dict[str, tuple[str, int | None]] = {_OPENING: ("process_reality", 1)}
+    index.update(_BANK_REVERSE)
+    for area, text in _SPECIFICITY_BY_AREA.items():
+        index[text] = (area, None)
+    return index
+
 
 def _phrase(move: Move, state: InterviewState) -> str:
     if move.intent is Intent.OPEN:
@@ -219,12 +244,18 @@ class InterviewEngine:
 
         move = self._strategy.decide(state)
 
+        noted = (move.target_area, move.target_tier)
         if self._llm is not None:
             turn = self._live_turn(state=state, history=history,
                                    last_answer=last_answer, move=move)
         else:
+            utterance = _phrase(move, state)
+            if move.intent is Intent.LADDER:
+                # Credit the tier the phrased words actually came from, not the
+                # move's target — see _BANK_REVERSE.
+                noted = _BANK_REVERSE.get(utterance, noted)
             turn = InterviewerTurn(
-                utterance=_phrase(move, state),
+                utterance=utterance,
                 assessment=assessment,
                 next_move=NextMove(
                     hypothesis=move.rationale,
@@ -239,7 +270,7 @@ class InterviewEngine:
             )
 
         if not turn.should_close:
-            state.note_question(move.target_area, move.target_tier)
+            state.note_question(*noted)
         # The assessment has already been folded; do not hand it back for re-folding.
         turn.assessment = None
         return turn

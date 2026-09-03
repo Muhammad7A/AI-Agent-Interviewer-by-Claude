@@ -169,6 +169,47 @@ class NoLivelockTest(unittest.TestCase):
         claims = EvidenceTagger(llm=None).tag(result.transcript).claims
         self.assertGreaterEqual(len(claims), 4)
 
+    def test_an_uncoverable_area_does_not_pin_the_remaining_budget(self):
+        """process_reality tops out at tier 1, below COVERAGE_TIER.
+
+        Reading 'below coverage tier' as 'still worth maximal gain' without capping
+        at the area's ceiling made it worth 2.0 forever: an open interview spent its
+        last three turns asking the identical process-reality question.
+        """
+        from ai_engine.interview.strategy import _information_gain
+
+        state = InterviewState(objective="t")
+        state.turn_count = 4
+        cov = state.coverage["process_reality"]
+        cov.level = "touched"
+        cov.max_tier = 1  # its ceiling — it can never reach COVERAGE_TIER
+        self.assertLess(_information_gain("process_reality", state), 0.25)
+
+    def test_an_open_subject_is_never_asked_the_same_question_twice(self):
+        engine = InterviewEngine(llm=None, max_turns=14)
+        subject = SimulatedInterviewee(default_persona("open"), llm=None)
+        result = run_interview(engine=engine, subject=subject,
+                               event_log=NullEventLog(), max_turns=14)
+        questions = [s.text for s in result.transcript.segments
+                     if s.speaker is Speaker.INTERVIEWER]
+        self.assertEqual(len(questions), len(set(questions)),
+                         "the strategy re-asked an identical question")
+
+    def test_asking_the_bank_text_credits_the_bank_tier(self):
+        """The friction bank has no tier-1 entry, so a tier-1 LADDER phrases the
+        tier-3 text — and coverage must record the tier of the words asked, or a
+        tier-3 disclosure is booked as tier 1 and friction needs repeated asks."""
+        engine = InterviewEngine(llm=None, max_turns=14)
+        state = InterviewState(objective="t")
+        state.turn_count = 2
+        state.coverage["process_reality"].level = "touched"
+        state.coverage["process_reality"].max_tier = 1
+        engine.next_turn(state=state, history=[], last_answer=None, fold_last=False)
+        # First move after a touched process_reality is friction at tier 1, but the
+        # only friction bank text is the tier-3 one.
+        self.assertEqual(state.pending_area, "friction")
+        self.assertEqual(state.pending_tier, 3)
+
 
 class LiveDirectiveTest(unittest.TestCase):
     def test_the_move_is_handed_to_the_model_as_an_instruction(self):

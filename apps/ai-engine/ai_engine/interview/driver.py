@@ -73,20 +73,46 @@ class InterviewDriver:
         the same local assessment the engine uses, rather than being persisted
         separately — one source of truth for what an answer meant, so a resumed
         interview cannot diverge from one that never stopped.
+
+        Attribution needs what each question *targeted* (``assess_locally`` credits
+        ``state.pending_area``/``pending_tier``, which only ``note_question`` sets).
+        Each ``InterviewerAsked`` event records exactly that, so the event log is the
+        primary source; the offline question bank is the fallback for drafts whose
+        log is missing. Without either, replayed answers would all attribute to no
+        area at tier 0 — every area "untouched" — and the resumed interview would
+        silently diverge from one that never stopped.
         """
         driver = cls(engine=engine, transcript=transcript, objective=objective,
                      event_log=event_log, max_turns=max_turns)
         driver._started = True  # do not re-emit InterviewStarted on every resume
         driver._pending_question = pending_question
-        driver._state.turn_count = turn_count
 
-        from .engine import assess_locally
+        from .engine import assess_locally, question_area_index
+
+        asked: dict[str, tuple[str, int]] = {}
+        for event in (event_log.read() if event_log is not None else []):
+            if (event.get("event") == "InterviewerAsked"
+                    and event.get("segment_id") and event.get("target_area")):
+                tier = event.get("tier_credited") or event.get("tier_targeted") or 1
+                asked[event["segment_id"]] = (event["target_area"], int(tier))
+        bank = question_area_index()
 
         pending_q: str | None = None
+        replayed_turns = 0
         for segment in transcript.segments:
             if segment.speaker is Speaker.INTERVIEWER:
                 pending_q = segment.text
+                target = (asked.get(segment.id)
+                          or bank.get(segment.text.strip()))
+                if target is not None:
+                    area, tier = target
+                    if tier is None:
+                        # A specificity probe: same topic, tier unchanged.
+                        driver._state.pending_area = area
+                    else:
+                        driver._state.note_question(area, tier)
                 driver._history.append({"role": "assistant", "content": segment.text})
+                replayed_turns += 1
             else:
                 driver._history.append({"role": "user", "content": segment.text})
                 if pending_q is not None:
@@ -101,6 +127,9 @@ class InterviewDriver:
                     )
                 driver._last_answer = segment.text
                 pending_q = None
+        # The stored count is authoritative (the caller checkpointed it); replaying
+        # turn-by-turn first keeps deferred-until / last-asked arithmetic sane.
+        driver._state.turn_count = turn_count if turn_count else replayed_turns
         driver._folded_current = True  # everything replayed is already folded
         return driver
 
@@ -175,6 +204,10 @@ class InterviewDriver:
             turn=self._state.turn_count,
             target_area=(turn.next_move.target_area if turn.next_move else None),
             tier_targeted=(turn.next_move.tier_targeted if turn.next_move else None),
+            # What the asked question actually credited (the bank text asked may
+            # sit at a different tier than the move targeted — see engine). Resume
+            # replays from this, so it must match what live recorded.
+            tier_credited=self._state.pending_tier,
             technique=(turn.next_move.technique if turn.next_move else None),
         )
 

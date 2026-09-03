@@ -77,13 +77,27 @@ def _information_gain(area: str, state: InterviewState) -> float:
     cov = state.coverage[area]
     ceiling = _AREA_TIER_CEILING.get(area, 2)
     remaining = max(0, ceiling - max(cov.max_tier, 0))
+    # "Usable depth" is capped by what the area can plausibly yield: an area whose
+    # ceiling is below COVERAGE_TIER can never be *covered*, and reading "below
+    # coverage tier" without that cap gave it gain 2.0 forever — the strategy then
+    # ladder-ed into it until the turn budget died, asking the identical question
+    # on the last three turns of a simulated interview.
+    usable_ceiling = min(ceiling, COVERAGE_TIER)
 
     if cov.level == "untouched":
         gain = 3.0                      # never asked: the most uncertain thing we have
-    elif cov.max_tier < COVERAGE_TIER:
+    elif cov.max_tier < usable_ceiling:
         gain = 2.0                      # touched but shallow: still below usable depth
     else:
-        gain = 0.6 * remaining          # covered: only worth pushing toward its ceiling
+        gain = 0.6 * remaining          # as deep as it can usefully go: only the ceiling beyond
+
+    # An area the subject was guarded about is worth less *right now*, not forever.
+    if cov.deferred_until_turn > state.turn_count:
+        gain *= 0.15
+    # Diminishing returns on an area that keeps producing vagueness.
+    if cov.vague_streak >= MAX_VAGUE_STREAK:
+        gain *= 0.2
+    return gain + _AREA_VALUE.get(area, 1) * 0.05
 
     # An area the subject was guarded about is worth less *right now*, not forever.
     if cov.deferred_until_turn > state.turn_count:
@@ -94,9 +108,12 @@ def _information_gain(area: str, state: InterviewState) -> float:
     return gain + _AREA_VALUE.get(area, 1) * 0.05
 
 
-def _best_area(state: InterviewState, exclude: str | None = None) -> tuple[str, float]:
-    candidates = [a for a in TARGET_AREAS if a != exclude] or list(TARGET_AREAS)
-    scored = sorted(candidates, key=lambda a: (-_information_gain(a, state), a))
+def _best_area(state: InterviewState, exclude: str | None = None,
+               candidates: tuple[str, ...] | list[str] | None = None
+               ) -> tuple[str, float]:
+    pool = list(candidates) if candidates is not None else list(TARGET_AREAS)
+    pool = [a for a in pool if a != exclude] or list(TARGET_AREAS)
+    scored = sorted(pool, key=lambda a: (-_information_gain(a, state), a))
     best = scored[0]
     return best, _information_gain(best, state)
 
@@ -192,7 +209,21 @@ class InterviewStrategy:
                         "conflicts with an earlier answer from the same person",
                         earlier=found[0], later=found[1]))
 
-        # 6. Otherwise: go where the most is still unknown, one tier deeper.
+        # 6. Otherwise: go where the most is still unknown, one tier deeper — but
+        # only where there is something left to get. An area whose vague streak has
+        # maxed out is struck out ("three strikes and it is not worth more",
+        # state.py), and one already at its tier ceiling has no deeper tier to
+        # offer; ladder-ing into either re-asked the identical question until the
+        # budget died. Better to close than to grind.
+        askable = [a for a in TARGET_AREAS
+                   if state.coverage[a].vague_streak < MAX_VAGUE_STREAK
+                   and state.coverage[a].max_tier < _AREA_TIER_CEILING.get(a, 2)]
+        if askable:
+            area, gain = _best_area(state, candidates=askable)
+            if gain >= 0.25:
+                return self._remember(Move(
+                    Intent.LADDER, area, _next_tier(area, state),
+                    f"highest remaining uncertainty is {area}"))
         return self._remember(Move(
-            Intent.LADDER, best_area, _next_tier(best_area, state),
-            f"highest remaining uncertainty is {best_area}"))
+            Intent.CLOSE, best_area, 0,
+            "coverage saturated, budget exhausted, or only struck-out areas remain"))

@@ -42,9 +42,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-tag", action="store_true", help="skip post-interview evidence tagging")
     parser.add_argument("--validate", action="store_true",
                         help="validate findings by hand (default: auto-sim reviewer)")
+    parser.add_argument("--read-report", metavar="PATH", default=None,
+                        help="print a stored report (decrypting it when a storage "
+                             "key is configured) and exit")
     args = parser.parse_args(argv)
 
     settings = load_settings()
+
+    if args.read_report is not None:
+        from .persistence.reports import load_report
+
+        print(load_report(args.read_report, settings.cipher()))
+        return 0
     # Refuse to serve real interviews from an unsafe configuration (mock cognition
     # or plaintext testimony). No-op in dev.
     settings.assert_deployable()
@@ -212,9 +221,20 @@ def _report(transcript, findings, state, args, settings) -> None:
     if args.no_log:
         print("\n" + "=" * 60 + "\n" + md)
         return
-    path = settings.data_dir / f"{transcript.id}.report.md"
-    path.write_text(md, encoding="utf-8")
-    print(f"\nReport: {path}")
+    from pathlib import Path
+
+    from .persistence.reports import save_report
+
+    # A report carries verbatim quotes, so it obeys the same at-rest policy as the
+    # transcript it cites — encrypted whenever a storage key is configured, not
+    # only the tidier stores.
+    cipher = settings.cipher()
+    path = save_report(Path(settings.data_dir), f"{transcript.id}.report", md, cipher)
+    if cipher.protects_at_rest:
+        print(f"\nReport (encrypted at rest): {path}")
+        print(f"Read it with: python -m ai_engine.cli --read-report \"{path}\"")
+    else:
+        print(f"\nReport: {path}  ⚠ PLAINTEXT (dev only)")
 
 
 def _interactive_validator_identity():

@@ -21,6 +21,43 @@ from __future__ import annotations
 
 import re
 
+# --- canonicalization ------------------------------------------------------
+
+# Unicode characters a model commonly substitutes when it echoes a quote:
+# curly quotes for straight, en/em dashes for hyphen, exotic spaces. Each maps to
+# exactly ONE ascii character so the mapping is length-preserving — which means an
+# offset in the canonicalized text is the SAME offset in the original text, so an
+# EvidenceRef built from canonicalized grounding still points at real immutable
+# source. A rare char that lowercases to more than one char (e.g. "İ") is left
+# as-is rather than breaking the length invariant.
+_CANON: dict[str, str] = {
+    "‘": "'", "’": "'", "‚": "'", "‛": "'",  # ' ' ‚ ‛
+    "“": '"', "”": '"', "„": '"', "‟": '"',  # " " „ ‟
+    "‐": "-", "‑": "-", "‒": "-", "–": "-",   # ‐ ‑ ‒ –
+    "—": "-", "―": "-", "−": "-",                   # — ― −
+    " ": " ", " ": " ", " ": " ", " ": " ",   # nbsp, thin spaces
+    " ": " ", "\t": " ",
+}
+
+
+def canonicalize(text: str) -> str:
+    """Lowercase and fold unicode punctuation/spelling variants onto ASCII.
+
+    One home for both gates (Art. XV). Grounding uses it to match quotes that
+    were re-emitted with curly quotes or em-dashes; the negation and quantity
+    cues below must agree with it, or Gate 2 goes blind to exactly the text
+    Gate 1 tolerates: a live subject's "don’t" (curly) read as un-negated while
+    the same words in ASCII read as negated — a false accept in the most
+    dangerous direction, verified before this was one function.
+    """
+    out: list[str] = []
+    for ch in text:
+        mapped = _CANON.get(ch, ch)
+        lowered = mapped.lower()
+        out.append(lowered if len(lowered) == 1 else mapped)
+    return "".join(out)
+
+
 # --- negation --------------------------------------------------------------
 
 #: Surface cues that flip the polarity of a statement. Entries wrapped in spaces
@@ -51,7 +88,7 @@ def has_negation(text: str) -> bool:
     of it is not an inversion — whereas presence-parity catches the case that
     actually matters: one side negates and the other does not.
     """
-    padded = " " + text.lower().strip() + " "
+    padded = " " + canonicalize(text) + " "
     return any(cue in padded for cue in NEGATION_CUES)
 
 
@@ -122,7 +159,7 @@ def quantities(text: str) -> set[str]:
     different tokens. Treating them as equal needs real parsing, and the safe
     direction for a gate is to flag rather than to assume.
     """
-    lowered = text.lower()
+    lowered = canonicalize(text)
     tokens = re.findall(r"\d[\d,]*(?:\.\d+)?|[a-z]+", lowered)
     found: set[str] = set()
     for i, token in enumerate(tokens):

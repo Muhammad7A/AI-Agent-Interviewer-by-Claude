@@ -46,6 +46,28 @@ class HeuristicCheckerTest(unittest.TestCase):
         r = self.checker.check("Uses personal ChatGPT to draft summaries.", CHATGPT_QUOTE)
         self.assertIs(r.verdict, Entailment.SUPPORTED)
 
+    def test_polarity_flip_behind_typographic_apostrophes_is_not_supported(self):
+        # Gate 1 matches "don’t" (curly) to "don't" (ASCII), so the polarity check
+        # must read the curly form as negated too. Before the two gates shared one
+        # canonicalizer, this claim was admitted against its own contradicting
+        # quote — with a genuine verbatim quote attached.
+        r = self.checker.check("We have a documented process.",
+                               "We don’t have a documented process.")
+        self.assertIs(r.verdict, Entailment.NOT_SUPPORTED)
+
+    def test_faithful_ascii_claim_over_curly_negated_quote_is_supported(self):
+        # Same asymmetry, safe direction: the claim in ASCII, the source span
+        # (resolved from the transcript) in curly form. Reading the source as
+        # un-negated rejected a faithful claim as a polarity inversion.
+        r = self.checker.check("We don't have a documented process.",
+                               "We don’t have a documented process.")
+        self.assertIs(r.verdict, Entailment.SUPPORTED)
+
+    def test_verbatim_curly_quote_is_supported(self):
+        r = self.checker.check("We don’t have a documented process.",
+                               "We don’t have a documented process.")
+        self.assertIs(r.verdict, Entailment.SUPPORTED)
+
     def test_escalation_to_accusation_is_not_supported(self):
         # The dangerous case: a benign quote turned into a serious accusation.
         r = self.checker.check("The employee admitted leaking confidential customer data.",

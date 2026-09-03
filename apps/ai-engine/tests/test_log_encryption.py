@@ -163,3 +163,39 @@ class NoPlaintextLeakTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReportPersistenceTest(unittest.TestCase):
+    """A rendered report carries verbatim quotes, so it obeys the same at-rest
+    policy as the testimony it cites. Before this existed, the transcript, event
+    logs, and caches were cipher-wrapped while the report — the artifact most
+    likely to be backed up or synced — was written with plain write_text().
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+
+    def test_report_is_opaque_on_disk_when_a_cipher_is_configured(self):
+        from ai_engine.persistence.reports import load_report, save_report
+
+        path = save_report(self.dir, "t1.report", SECRET, StubCipher())
+        self.assertEqual(path.name, "t1.report.md.enc")
+        self.assertNotIn(SECRET, path.read_text(encoding="utf-8", errors="ignore"))
+        self.assertEqual(load_report(path, StubCipher()), SECRET)
+
+    def test_report_stays_plain_in_dev_without_a_key(self):
+        from ai_engine.persistence.reports import load_report, save_report
+
+        path = save_report(self.dir, "t1.report", SECRET, NullCipher())
+        self.assertEqual(path.name, "t1.report.md")
+        self.assertIn(SECRET, path.read_text(encoding="utf-8"))
+        self.assertEqual(load_report(path, NullCipher()), SECRET)
+
+    def test_encrypted_report_refuses_to_load_without_a_cipher(self):
+        from ai_engine.persistence.reports import load_report, save_report
+
+        path = save_report(self.dir, "t1.report", SECRET, StubCipher())
+        with self.assertRaises(ValueError):
+            load_report(path, NullCipher())

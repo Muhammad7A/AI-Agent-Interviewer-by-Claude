@@ -77,10 +77,13 @@ def main(argv: list[str] | None = None) -> int:
     print(report)
 
     if args.write:
-        settings.data_dir.mkdir(parents=True, exist_ok=True)
-        path = settings.data_dir / f"org_report.{args.audience}.md"
-        path.write_text(report, encoding="utf-8")
-        print(f"\nWrote {path}")
+        from ..persistence.reports import save_report
+
+        cipher = settings.cipher()
+        path = save_report(settings.data_dir, f"org_report.{args.audience}", report,
+                           cipher)
+        print(f"\nWrote {path}"
+              + ("" if cipher.protects_at_rest else "  ⚠ PLAINTEXT (dev only)"))
         # The re-identification key is written separately, never with the report.
         key_path = pseudonymizer.write_key(settings.data_dir / "identity-key.RESTRICTED.json")
         print(f"Wrote {key_path}  (RESTRICTED — consultant only)")

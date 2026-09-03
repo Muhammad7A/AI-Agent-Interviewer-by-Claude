@@ -6,8 +6,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from ..evidence.entailment import Entailment, HeuristicEntailmentChecker
-from ..evidence.grounding import _canon, ground_proposal
-from ..lexicon import has_negation, quantities
+from ..evidence.grounding import ground_proposal
+from ..lexicon import canonicalize, has_negation, quantities
 from ..evidence.model import RawProposal
 from ..transcript.model import Speaker
 from .corpus import QuoteSpan, build_transcripts, collect_spans, interviewer_spans
@@ -213,6 +213,29 @@ def _check_entailment(span: QuoteSpan, report: FuzzReport, rng: random.Random) -
                 report.fail(Violation("entailment_rejects_negation", "false_accept",
                                       "a claim that negates its own quote was admitted",
                                       quote, inverted))
+
+    # Canonicalization parity with Gate 1, probed deterministically rather than
+    # waiting on the corpus to happen to contain a contraction: Gate 1 matches
+    # "don’t" (curly) to "don't" (ASCII), so Gate 2 must read the curly form as
+    # negated too. Before the two gates shared one canonicalizer, the curly form
+    # read as un-negated and the claim asserting its quote's opposite was
+    # admitted — with a genuine verbatim quote attached.
+    probe_quote = "We don’t have a documented process for this."
+    probe_claim = "We have a documented process for this."
+    report.record("entailment_rejects_negation")
+    if checker.check(probe_claim, probe_quote).verdict is Entailment.SUPPORTED:
+        report.fail(Violation(
+            "entailment_rejects_negation", "false_accept",
+            "a negation behind a typographic apostrophe was invisible to the "
+            "polarity check", probe_quote, probe_claim))
+    # And the same parity in the safe direction: a faithful claim over the curly
+    # source must not be rejected for disagreeing with itself.
+    report.record("entailment_accepts_faithful")
+    if checker.check(probe_quote, probe_quote).verdict is not Entailment.SUPPORTED:
+        report.fail(Violation(
+            "entailment_accepts_faithful", "false_reject",
+            "a faithful restatement of a curly-apostrophe quote was rejected "
+            "as a polarity inversion", probe_quote, probe_quote))
 
     # A figure the quote does not contain must be rejected: a claim can keep every
     # word and change the number, which is what turns into a business case.

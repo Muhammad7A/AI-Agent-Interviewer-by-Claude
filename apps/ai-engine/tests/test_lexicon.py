@@ -14,11 +14,41 @@ from ai_engine.aggregation.relation import HeuristicRelationChecker
 from ai_engine.evidence.entailment import Entailment, HeuristicEntailmentChecker
 from ai_engine.lexicon import (
     NEGATION_CUES,
+    canonicalize,
     has_negation,
     invents_quantity,
     negation_disagrees,
     quantities,
 )
+
+
+class CanonicalizationTest(unittest.TestCase):
+    """One canonicalizer for both gates (Art. XV) — and it must actually fire.
+
+    Grounding matches a curly-apostrophe quote to its ASCII twin; if the negation
+    cues below only ever see raw text, Gate 2 goes blind to exactly the text Gate 1
+    tolerates: "We don’t have a problem" quoted as "We have a problem" was admitted
+    before this was one function.
+    """
+
+    def test_folds_typographic_apostrophes_and_case(self):
+        self.assertEqual(canonicalize("Don’t"), "don't")
+        self.assertEqual(canonicalize("We DON’T — “fine”"), "we don't - \"fine\"")
+
+    def test_is_length_preserving(self):
+        # The offset invariant EvidenceRef rests on: an index in the canonicalized
+        # text is the same index in the original.
+        source = "Don’t ‒ “fine” \u00a0 ok"
+        self.assertEqual(len(canonicalize(source)), len(source))
+
+    def test_negation_behind_typographic_apostrophe_is_seen(self):
+        self.assertTrue(has_negation("We don’t have a documented process."))
+        self.assertTrue(has_negation("The dashboard isn’t accurate."))
+
+    def test_parity_holds_across_apostrophe_styles(self):
+        # Same words, different spelling: not a polarity disagreement.
+        self.assertFalse(negation_disagrees("We don't have a runbook.",
+                                            "We don’t have a runbook."))
 
 
 class NegationCueTest(unittest.TestCase):

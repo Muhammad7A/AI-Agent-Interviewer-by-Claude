@@ -26,7 +26,7 @@ except Exception:  # pragma: no cover
 from ai_engine.config import Runtime, Settings
 from ai_engine.interview.driver import InterviewDriver
 from ai_engine.interview.engine import InterviewEngine
-from ai_engine.persistence.event_log import NullEventLog
+from ai_engine.persistence.event_log import EventLog, NullEventLog
 from ai_engine.persistence.invitations import InvitationStatus, InvitationStore
 from ai_engine.persistence.session_store import (
     DEFAULT_TTL,
@@ -150,7 +150,9 @@ class DriverResumeTest(unittest.TestCase):
 
     def test_coverage_is_reconstructed_not_lost(self):
         # Replayed through the same assessment the engine uses, so a resumed
-        # interview cannot diverge from one that never stopped.
+        # interview cannot diverge from one that never stopped. Asserting only
+        # history length once let a resume through that attributed every replayed
+        # answer to no area at tier 0 — all six areas "untouched".
         original = _driver()
         original.next_question()
         original.submit_answer("I keep a private spreadsheet, it takes hours weekly.")
@@ -163,6 +165,64 @@ class DriverResumeTest(unittest.TestCase):
             turn_count=original.state.turn_count,
             event_log=NullEventLog(), max_turns=14)
         self.assertEqual(len(resumed.state.history), len(original.state.history))
+        self.assertEqual(
+            {a: (c.level, c.max_tier) for a, c in resumed.state.coverage.items()},
+            {a: (c.level, c.max_tier) for a, c in original.state.coverage.items()},
+            "coverage diverged from the interview that never stopped")
+        self.assertEqual(resumed.state.pending_area, original.state.pending_area)
+        self.assertEqual(resumed.state.pending_tier, original.state.pending_tier)
+        self.assertEqual(resumed.state.history[-1].area,
+                         original.state.history[-1].area)
+
+    def test_resume_restores_question_targets_from_the_event_log(self):
+        # The testimony log records what each asked question targeted; resume must
+        # prefer it so attribution survives even for questions the bank cannot
+        # classify (live-model wording).
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log = EventLog(Path(tmp), "int-resume-1")
+            original = InterviewDriver(
+                engine=InterviewEngine(llm=None, max_turns=14),
+                transcript=Transcript(), objective="test",
+                event_log=log, max_turns=14)
+            original.next_question()
+            original.submit_answer("I keep a private spreadsheet, it takes hours weekly.")
+            original.next_question()
+
+            resumed = InterviewDriver.resume(
+                engine=InterviewEngine(llm=None, max_turns=14),
+                transcript=original.transcript, objective="test",
+                pending_question=original.pending_question,
+                turn_count=original.state.turn_count,
+                event_log=EventLog(Path(tmp), "int-resume-1"), max_turns=14)
+            self.assertEqual(resumed.state.pending_area,
+                             original.state.pending_area)
+            self.assertEqual(
+                {a: (c.level, c.max_tier) for a, c in resumed.state.coverage.items()},
+                {a: (c.level, c.max_tier) for a, c in original.state.coverage.items()})
+
+    def test_a_resume_cannot_tell_its_answers_were_replayed(self):
+        # The resumed driver must answer its pending question and move on exactly
+        # as the never-stopped one would.
+        original = _driver()
+        q1 = original.next_question()
+        original.submit_answer("I keep a private spreadsheet, it takes hours weekly.")
+        q2 = original.next_question()
+
+        resumed = InterviewDriver.resume(
+            engine=InterviewEngine(llm=None, max_turns=14),
+            transcript=original.transcript, objective="test",
+            pending_question=q2, turn_count=original.state.turn_count,
+            event_log=NullEventLog(), max_turns=14)
+        resumed.submit_answer("And the weekly report is rebuilt by hand each Monday.")
+        q3_resumed = resumed.next_question()
+
+        never_stopped = original
+        never_stopped.submit_answer("And the weekly report is rebuilt by hand each Monday.")
+        q3_live = never_stopped.next_question()
+        self.assertEqual(q3_resumed, q3_live,
+                         "the resumed interview diverged from the uninterrupted one")
 
     def test_resuming_does_not_re_answer_or_duplicate_turns(self):
         original = _driver()

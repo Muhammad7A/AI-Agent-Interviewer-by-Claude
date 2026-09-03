@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 from hashlib import sha256
 
+from ..lexicon import canonicalize
 from ..transcript.model import EvidenceRef, Speaker, Transcript
 from .model import (
     Claim,
@@ -30,32 +31,6 @@ from .model import (
     RejectedProposal,
     TaggingResult,
 )
-
-
-# Unicode characters a model commonly substitutes when it echoes a quote:
-# curly quotes for straight, en/em dashes for hyphen, exotic spaces. Each maps to
-# exactly ONE ascii character so the mapping is length-preserving — which means an
-# offset in the canonicalized text is the SAME offset in the original text, so the
-# resulting EvidenceRef still points at real immutable source.
-_CANON: dict[str, str] = {
-    "‘": "'", "’": "'", "‚": "'", "‛": "'",  # ' ' ‚ ‛
-    "“": '"', "”": '"', "„": '"', "‟": '"',  # " " „ ‟
-    "‐": "-", "‑": "-", "‒": "-", "–": "-",   # ‐ ‑ ‒ –
-    "—": "-", "―": "-", "−": "-",                   # — ― −
-    " ": " ", " ": " ", " ": " ", " ": " ",   # nbsp, thin spaces
-    " ": " ", "\t": " ",
-}
-
-
-def _canon_char(ch: str) -> str:
-    mapped = _CANON.get(ch, ch)
-    lowered = mapped.lower()
-    # Keep it length-preserving: a rare char that lowercases to >1 char is left as-is.
-    return lowered if len(lowered) == 1 else mapped
-
-
-def _canon(text: str) -> str:
-    return "".join(_canon_char(c) for c in text)
 
 
 def claim_id_for(
@@ -123,7 +98,7 @@ def _locate(haystack: str, needle: str) -> tuple[int, int, str] | None:
         return match.start(), match.end(), "exact"
 
     # Canonicalize both (length-preserving, so offsets still map to the original).
-    chay, cneedle = _canon(haystack), _canon(needle)
+    chay, cneedle = canonicalize(haystack), canonicalize(needle)
 
     # 2. Same words after unicode/case normalization, ignoring trailing punctuation.
     cneedle_core = cneedle.rstrip(" .,;:!?\"'-")

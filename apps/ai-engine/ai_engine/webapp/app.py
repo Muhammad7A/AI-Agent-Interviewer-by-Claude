@@ -92,8 +92,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # would give the same person a new pseudonym after a restart, and two
     # transcripts from one participant would then count as two voices in
     # aggregation — quietly reporting a k the data does not have.
-    workspace = Workspace(settings=settings,
-                          pseudonymizer=Pseudonymizer.load_or_create(settings.data_dir))
+    workspace = Workspace(
+        settings=settings,
+        pseudonymizer=Pseudonymizer.load_or_create(settings.data_dir, settings.cipher()))
     app = FastAPI(title="Ontora consultant workspace", docs_url=None, redoc_url=None)
     app.state.workspace = workspace
 
@@ -140,7 +141,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """
         w = ws(request)
         alias = w.pseudonymizer.pseudonym(participant.strip() or "unknown")
-        w.pseudonymizer.save_state(w.settings.data_dir)
+        w.pseudonymizer.save_state(w.settings.data_dir, w.settings.cipher())
         InvitationStore(w.settings.data_dir).create(pseudonym=alias)
         return RedirectResponse("/invitations", status_code=303)
 
@@ -163,7 +164,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         w = ws(request)
         # Pseudonymise at ingest: the real name goes no further than this call.
         alias = w.pseudonymizer.pseudonym(participant.strip() or "unknown")
-        w.pseudonymizer.save_state(w.settings.data_dir)
+        w.pseudonymizer.save_state(w.settings.data_dir, w.settings.cipher())
         transcript = Transcript(engagement_id="eng-local", tenant_id="tenant-local")
         transcript.interview_id = alias
 

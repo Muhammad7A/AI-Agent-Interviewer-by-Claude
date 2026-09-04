@@ -10,7 +10,7 @@ the larger of the two by file count has never executed.
 
 | | path | status | lines | runs? |
 |---|---|---|---|---|
-| **The working product** | `apps/ai-engine/ai_engine/` | **live** | ~5,800 | yes — 137 tests, 5 CLIs, CI |
+| **The working product** | `apps/ai-engine/ai_engine/` | **live** | ~10,900 | yes — 360 tests, 8 CLIs, CI |
 | Ratified design (shared kernel) | `packages/contracts/src/` | contracts only | ~1,000 | no — `tsc` only |
 | Ratified design (platform) | `apps/core-api/src/` | contracts only | ~4,700 | no — `tsc` only |
 | Reserved skeleton | `apps/ai-engine/src/` | empty placeholders | 0 | no |

@@ -18,8 +18,22 @@ _PLAIN_SUFFIX = ".md"
 _ENCRYPTED_SUFFIX = ".md.enc"
 
 
+def _validate_stem(stem: str) -> None:
+    """A report stem becomes a filename, so it obeys the same rule as every id.
+
+    Today's stems are minted internally (a transcript id, an argparse ``choices``
+    value), so this is not reachable — but it is the only path in the package that
+    builds a filename from a caller-supplied string without checking it, and the
+    asymmetry is exactly how the transcript store ended up as the one that skipped
+    the check.
+    """
+    if not stem or "/" in stem or "\\" in stem or stem.startswith("."):
+        raise ValueError(f"invalid report stem: {stem!r}")
+
+
 def report_path(data_dir: Path, stem: str, *, cipher: Cipher | None = None) -> Path:
     """The path a report with this stem will be written to."""
+    _validate_stem(stem)
     effective = cipher or NullCipher()
     suffix = _ENCRYPTED_SUFFIX if effective.protects_at_rest else _PLAIN_SUFFIX
     return Path(data_dir) / f"{stem}{suffix}"

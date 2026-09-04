@@ -65,10 +65,23 @@ class EntailmentChecker(Protocol):
 # NOT contain it, the claim has escalated beyond its evidence — the dangerous,
 # legally-radioactive case (F5). Kept narrow to avoid false positives on ordinary
 # words (e.g. we do NOT include generic terms like "data" or "customer").
+# Two entries were wider than their meaning and rejected honest claims:
+#
+#   "forg"        fired on forgot / forget / forgetting / forgive — the single most
+#                 ordinary thing an interviewee says about a missed step. Narrowed
+#                 to the forms that actually allege document forgery. ("forge" is
+#                 no good either: it is inside "forget".)
+#   "confidential" fired on "this is confidential" and "we signed a confidentiality
+#                 agreement", which are routine business vocabulary rather than
+#                 accusations. Dropped; a real disclosure incident is already
+#                 covered by "leak" and "breach".
+#
+# A false reject here is not free: it silently drops a true finding, and the
+# rejection reason blames the interviewee for asserting something they did not.
 _SEVERE_STEMS = (
     "illeg", "fraud", "leak", "stol", "steal", "theft", "embezzl", "brib",
     "kickback", "harass", "discrimin", "lawsuit", "misconduct", "breach",
-    "violat", "confidential", "sabotag", "launder", "forg", "coverup",
+    "violat", "sabotag", "launder", "forger", "forged", "coverup",
 )
 
 _STOPWORDS = {
@@ -207,16 +220,40 @@ def make_checker(llm: LLMClient | None) -> EntailmentChecker:
 def apply_entailment(
     claims: list[Claim], transcript: Transcript, checker: EntailmentChecker
 ) -> tuple[list[Claim], list[EntailmentReject]]:
-    """Second gate: keep only claims whose quote supports them."""
+    """Second gate: keep only claims whose evidence supports them.
+
+    **Every** piece of evidence is checked, not just the first. Grounding emits one
+    piece per claim today, so reading ``evidence[0]`` was correct in practice and
+    silently wrong in principle: the moment a claim carries corroborating evidence,
+    the unchecked pieces would ride in behind the checked one, and the gate would
+    report a verdict it had not actually reached.
+
+    A claim survives if *any* piece of its evidence supports it — corroboration
+    means several quotes bear on one statement and only one need establish it —
+    but the rejection reason names how many were tried, so a claim rejected against
+    four quotes does not read like a claim rejected against one.
+    """
     kept: list[Claim] = []
     rejected: list[EntailmentReject] = []
     for claim in claims:
-        quote = claim.evidence[0].resolve(transcript)
-        result = checker.check(claim.statement, quote)
-        if result.verdict is Entailment.SUPPORTED:
+        reasons: list[str] = []
+        supported = False
+        for evidence in claim.evidence:
+            result = checker.check(claim.statement, evidence.resolve(transcript))
+            if result.verdict is Entailment.SUPPORTED:
+                supported = True
+                break
+            reasons.append(result.reason)
+        if supported:
             kept.append(claim)
+        elif reasons:
+            detail = reasons[0] if len(reasons) == 1 else (
+                f"{reasons[0]} (and {len(reasons) - 1} further piece(s) of "
+                f"evidence did not support it either)")
+            rejected.append(EntailmentReject(claim=claim, reason=detail))
         else:
-            rejected.append(EntailmentReject(claim=claim, reason=result.reason))
+            rejected.append(EntailmentReject(
+                claim=claim, reason="the claim carries no evidence to check"))
     return kept, rejected
 
 

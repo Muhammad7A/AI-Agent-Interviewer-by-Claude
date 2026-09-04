@@ -72,10 +72,17 @@ class EvidenceRef:
     segment_id: str
     start: int
     end: int
-    transcript_id: str = ""
+    #: Required, with no default. The guard below is ``if self.transcript_id and
+    #: ...``, so an empty value skipped it entirely — a reference built without
+    #: one reverted to exactly the cross-transcript behaviour this field was added
+    #: to prevent. Safety rested on the single production call site remembering to
+    #: pass it, while every test constructed refs positionally without it and so
+    #: exercised the unguarded path. Making it required moves the guarantee from
+    #: convention into the type.
+    transcript_id: str
 
     def resolve(self, transcript: "Transcript") -> str:
-        if self.transcript_id and transcript.id != self.transcript_id:
+        if transcript.id != self.transcript_id:
             raise ValueError(
                 f"EvidenceRef belongs to transcript {self.transcript_id}, "
                 f"cannot resolve against {transcript.id}"

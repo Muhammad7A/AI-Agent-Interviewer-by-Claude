@@ -316,19 +316,46 @@ class DemoRunTest(unittest.TestCase):
                             data_dir=self.data_dir)
         self.client = TestClient(create_app(settings))
 
-    def test_the_demo_runs_end_to_end_and_lands_on_the_synthesis(self):
+    def test_the_demo_runs_end_to_end_and_lands_on_both_deliverables(self):
         r = self.client.post("/demo/run", follow_redirects=False)
         self.assertEqual(r.status_code, 303)
-        synthesis_url = r.headers["location"]
-        self.assertIn("/engagements/", synthesis_url)
-        self.assertIn("/synthesis", synthesis_url)
+        url = r.headers["location"]
+        self.assertIn("/engagements/", url)
+        self.assertIn("/deliverables", url)
 
-        page = self.client.get(synthesis_url)
+        page = self.client.get(url)
         self.assertEqual(page.status_code, 200)
-        self.assertIn("Engagement synthesis", page.text)
+        # The contrast IS the page: consultant and employer, side by side.
+        self.assertIn("Consultant", page.text)
+        self.assertIn("Employer", page.text)
+        self.assertIn("k-anonymity", page.text)
         self.assertIn("auto-sim", page.text,
                       "the page must say which verdicts were machine-made")
 
         # The engagement shows up on the dashboard with its interviews.
         dash = self.client.get("/").text
         self.assertIn("Speedrun demo", dash)
+
+    def test_engagement_level_employer_route_renders_the_firewall(self):
+        r = self.client.post("/demo/run", follow_redirects=False)
+        eid = r.headers["location"].split("/")[2]
+        page = self.client.get(f"/engagements/{eid}/employer")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("Employer release", page.text)
+        self.assertIn("withheld", page.text)
+
+        # The firewall invariant, over the WHOLE payload: no verbatim testimony.
+        from ai_engine.persistence.transcript_store import TranscriptStore
+
+        store = TranscriptStore(self.data_dir)
+        for tid in store.list_ids():
+            t = store.load(tid)
+            for seg in t.segments:
+                if seg.speaker.value == "subject" and len(seg.text) > 25:
+                    self.assertNotIn(seg.text, page.text)
+
+    def test_unknown_engagement_is_a_404_not_a_blank_document(self):
+        self.assertEqual(
+            self.client.get("/engagements/eng-nothing/employer").status_code, 404)
+        self.assertEqual(
+            self.client.get("/engagements/eng-nothing/deliverables").status_code, 404)

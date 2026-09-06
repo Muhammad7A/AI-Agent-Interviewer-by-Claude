@@ -260,17 +260,23 @@ def create_app(settings: Settings | None = None,
     @app.get("/transcripts/{transcript_id}/employer", response_class=HTMLResponse)
     def employer_release(request: Request, transcript_id: str) -> HTMLResponse:
         posture, warn = svc.posture()
-        if svc.load_transcript(transcript_id) is None:
+        transcript = svc.load_transcript(transcript_id)
+        if transcript is None:
             return HTMLResponse(views.message(title="Not found", text="Unknown transcript.",
                                               posture=posture, warn=warn), status_code=404)
         markdown = svc.employer_release_markdown([transcript_id])
+        # k-anonymity needs a group: point the consultant at the engagement-level
+        # release, which is where the threshold can actually be met.
+        engagement_link = (
+            f'<a href="/engagements/{views.esc(transcript.engagement_id)}/employer">'
+            f"Open the engagement-level release for "
+            f"{views.esc(svc.engagement_name(transcript.engagement_id))}</a>")
         return HTMLResponse(views.document(
             title="Employer release", subtitle=f"{transcript_id} · through the privacy firewall",
             markdown=markdown, back=f"/transcripts/{transcript_id}/review",
             posture=posture, warn=warn,
-            note="A single interview cannot be anonymous within itself. Release an "
-                 "engagement-level report instead once several people have been "
-                 "interviewed — see the engagement report."))
+            note_html=("A single interview cannot be anonymous within itself, so this "
+                       "page releases only suppressions. " + engagement_link + ".")))
 
     @app.post("/demo/run")
     def run_demo(request: Request):
@@ -278,7 +284,14 @@ def create_app(settings: Settings | None = None,
 
         result = run_demo_engagement(svc)
         return RedirectResponse(
-            f"/engagements/{result.engagement_id}/synthesis", status_code=303)
+            f"/engagements/{result.engagement_id}/deliverables", status_code=303)
+
+    def _engagement_auto_sim(engagement_id: str, transcripts: list[str]) -> bool:
+        return any(
+            "auto-sim" in (v.validator_kind or "")
+            for tid in transcripts
+            for v in svc.verdicts(tid).values()
+        )
 
     @app.get("/engagements/{engagement_id}/synthesis", response_class=HTMLResponse)
     def engagement_synthesis(request: Request, engagement_id: str) -> HTMLResponse:
@@ -290,11 +303,7 @@ def create_app(settings: Settings | None = None,
                 text="Run the demo or start interviews into it first.",
                 posture=posture, warn=warn), status_code=404)
         markdown = svc.engagement_synthesis_markdown(engagement_id)
-        auto = any(
-            "auto-sim" in (v.validator_kind or "")
-            for tid in transcripts
-            for v in svc.verdicts(tid).values()
-        )
+        auto = _engagement_auto_sim(engagement_id, transcripts)
         return HTMLResponse(views.document(
             title="Engagement synthesis",
             subtitle=f"{svc.engagement_name(engagement_id)} · "
@@ -306,6 +315,59 @@ def create_app(settings: Settings | None = None,
                   if auto else
                   "Every verdict in this engagement was recorded by a human "
                   "consultant through the review page.")))
+
+    @app.get("/engagements/{engagement_id}/employer", response_class=HTMLResponse)
+    def engagement_employer(request: Request, engagement_id: str) -> HTMLResponse:
+        """The employer's document for ONE engagement — the thing you hand over.
+
+        This is the route the per-transcript employer page points at: k-anonymity
+        needs a group, and only an engagement can provide one.
+        """
+        posture, warn = svc.posture()
+        transcripts = svc.transcripts_for_engagement(engagement_id)
+        if not transcripts:
+            return HTMLResponse(views.message(
+                title="No interviews in this engagement",
+                text="Run the demo or start interviews into it first.",
+                posture=posture, warn=warn), status_code=404)
+        markdown = svc.employer_release_markdown(engagement_id=engagement_id)
+        return HTMLResponse(views.document(
+            title="Employer release",
+            subtitle=f"{svc.engagement_name(engagement_id)} · "
+                     f"{len(transcripts)} interviews · aggregated, "
+                     f"k-anonymity {employer_k}",
+            markdown=markdown, back="/", posture=posture, warn=warn,
+            note="This is what the employer receives: group-level findings only, no "
+                 "names, no verbatim quotes, and disagreements reported without "
+                 "sides. Topics below the k threshold are listed as withheld, not "
+                 "summarised."))
+
+    @app.get("/engagements/{engagement_id}/deliverables",
+             response_class=HTMLResponse)
+    def engagement_deliverables(request: Request,
+                                engagement_id: str) -> HTMLResponse:
+        """Both documents, side by side — the demo's pitch page.
+
+        Consultant synthesis on the left (inside the firewall: attributed,
+        verbatim), employer release on the right (aggregate-only, withheld
+        ledger visible). The contrast IS the product.
+        """
+        posture, warn = svc.posture()
+        transcripts = svc.transcripts_for_engagement(engagement_id)
+        if not transcripts:
+            return HTMLResponse(views.message(
+                title="No interviews in this engagement",
+                text="Run the demo or start interviews into it first.",
+                posture=posture, warn=warn), status_code=404)
+        synthesis = svc.engagement_synthesis_markdown(engagement_id)
+        employer = svc.employer_release_markdown(engagement_id=engagement_id)
+        auto = _engagement_auto_sim(engagement_id, transcripts)
+        return HTMLResponse(views.deliverables(
+            engagement_name=svc.engagement_name(engagement_id),
+            interview_count=len(transcripts), k_anonymity=employer_k,
+            synthesis_md=synthesis, employer_md=employer,
+            auto_validated=auto, posture=posture, warn=warn))
+
     @app.get("/engagement", response_class=HTMLResponse)
     def engagement(request: Request) -> HTMLResponse:
         posture, warn = svc.posture()

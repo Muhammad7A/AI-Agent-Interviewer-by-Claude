@@ -421,9 +421,36 @@ class ConsultantService:
                     markdown, self.settings.cipher())
         return markdown
 
-    def employer_release_markdown(self, transcript_ids: list[str] | None = None,
-                                  *, org_name: str = "This engagement") -> str:
-        """The employer's document, through the firewall at the documented k."""
+    def employer_release_markdown(self, transcript_ids: list[str] | None = None, *,
+                                  engagement_id: str | None = None,
+                                  org_name: str | None = None) -> str:
+        """The employer's document, through the firewall at the documented k.
+
+        Scope it either with ``engagement_id`` or with an explicit
+        ``transcript_ids`` list — never both. The contract is loud on purpose:
+        a scope that resolves to nothing raises rather than rendering a
+        plausible, completely empty report (passing an engagement id here used
+        to iterate it character by character — fourteen "transcript ids" that
+        all failed to load, zero exceptions, blank deliverable).
+        """
+        if engagement_id is not None and transcript_ids is not None:
+            raise ValueError(
+                "scope the release with engagement_id or transcript_ids, not both")
+        if engagement_id is not None:
+            transcript_ids = self.transcripts_for_engagement(engagement_id)
+            if not transcript_ids:
+                raise ValueError(
+                    f"engagement {engagement_id!r} has no stored transcripts")
+            if org_name is None:
+                org_name = self.engagement_name(engagement_id)
+        if transcript_ids is not None:
+            if not isinstance(transcript_ids, list) or not transcript_ids:
+                raise ValueError(
+                    "transcript_ids must be a non-empty list of transcript ids")
+            unknown = [tid for tid in transcript_ids
+                       if self.load_transcript(tid) is None]
+            if unknown:
+                raise ValueError(f"unknown transcript id(s): {unknown[:3]}")
         if transcript_ids is None:
             transcripts = [t for t in (self.load_transcript(tid)
                                        for tid in self.store.list_ids())
@@ -438,8 +465,12 @@ class ConsultantService:
         policy = ReleasePolicy.for_employer()
         package = release(aggregation, policy=policy)
         markdown = render_release_report(
-            package, org_name=org_name, interview_count=len(transcripts))
-        save_report(Path(self.settings.data_dir), "org_report.employer",
+            package,
+            org_name=org_name or "This engagement",
+            interview_count=len(transcripts))
+        stem = ("org_report.employer" if engagement_id is None
+                else f"org_report.employer.{engagement_id}")
+        save_report(Path(self.settings.data_dir), stem,
                     markdown, self.settings.cipher())
         return markdown
 

@@ -252,3 +252,47 @@ class DemoEngagementTest(unittest.TestCase):
         self.assertEqual([i["claims"] for i in first.interviews],
                          [i["claims"] for i in second.interviews],
                          "the mock demo must not vary between pitches")
+
+
+class EmployerReleaseContractTest(unittest.TestCase):
+    """The contract that used to fail silently: an engagement id passed where a
+    list of transcript ids goes iterated character-by-character and rendered a
+    plausible, completely empty report. Now the contract is loud."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.data_dir = Path(self._tmp.name)
+        self.service = ConsultantService(_settings(self.data_dir))
+
+    def _demo(self):
+        from ai_engine.application.demo import run_demo_engagement
+        return run_demo_engagement(self.service)
+
+    def test_an_engagement_id_is_not_a_list_of_ids(self):
+        result = self._demo()
+        with self.assertRaises(ValueError):
+            self.service.employer_release_markdown(result.engagement_id)
+
+    def test_both_scopes_at_once_is_refused(self):
+        result = self._demo()
+        with self.assertRaises(ValueError):
+            self.service.employer_release_markdown(
+                [result.interviews[0]["transcript_id"]],
+                engagement_id=result.engagement_id)
+
+    def test_unknown_ids_are_refused_not_rendered_empty(self):
+        self._demo()
+        with self.assertRaises(ValueError):
+            self.service.employer_release_markdown(["txn-doesnotexist1"])
+
+    def test_engagement_scope_renders_the_named_release(self):
+        result = self._demo()
+        md = self.service.employer_release_markdown(engagement_id=result.engagement_id)
+        self.assertIn(f"Interviews:** {len(result.interviews)}", md)
+        self.assertIn(result.engagement_name, md)
+
+    def test_an_empty_engagement_is_refused_at_the_service_layer(self):
+        eid = self.service.create_engagement("Nothing yet")["id"]
+        with self.assertRaises(ValueError):
+            self.service.employer_release_markdown(engagement_id=eid)

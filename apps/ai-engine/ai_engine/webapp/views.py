@@ -59,6 +59,13 @@ th { color:var(--muted); font-weight:600; font-size:12px; text-transform:upperca
         font-size:13px; color:var(--muted); background:var(--bg); border-radius:0 6px 6px 0; }
 .grounded strong { color:var(--good); }
 .evi { font-size:12px; font-weight:600; text-decoration:none; }
+.split { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:14px; }
+.split h3 { margin:0 0 8px; }
+.split .doc { max-height:72vh; overflow:auto; }
+.split .label { font-size:12px; font-weight:600; text-transform:uppercase;
+        color:var(--muted); letter-spacing:.4px; }
+.split .left  { border-top:3px solid var(--accent); }
+.split .right { border-top:3px solid var(--good); }
 pre { white-space:pre-wrap; font:13px ui-monospace,Menlo,monospace; }
 """
 
@@ -426,8 +433,10 @@ def consultant_report_page(*, transcript_id: str, participant: str,
 
 
 def document(*, title: str, subtitle: str, markdown: str, back: str,
-             posture: str, warn: bool, note: str = "") -> str:
-    note_html = f'<div class="note">{esc(note)}</div>' if note else ""
+             posture: str, warn: bool, note: str = "",
+             note_html: str = "") -> str:
+    note_html = f'<div class="note">{esc(note) if note else note_html}</div>' \
+        if (note or note_html) else ""
     body = (
         f"<h1>{esc(title)}</h1><p class=\"sub\">{esc(subtitle)}</p>"
         + _nav() + note_html
@@ -435,6 +444,46 @@ def document(*, title: str, subtitle: str, markdown: str, back: str,
         + f'<p><a class="btn" href="{esc(back)}">Back</a></p>'
     )
     return layout(title, body, posture=posture, warn=warn)
+
+
+def deliverables(*, engagement_name: str, interview_count: int, k_anonymity: int,
+                 synthesis_md: str, employer_md: str, auto_validated: bool,
+                 posture: str, warn: bool) -> str:
+    """Both documents, side by side — the demo's pitch page.
+
+    The contrast IS the product: the consultant's copy keeps attributed verbatim
+    testimony because the participant was promised confidentiality inside the
+    firewall; the employer's copy is aggregate-only at k={k}, with a ledger of
+    what was withheld and why. Same engagement, two documents, and the difference
+    is exactly what makes people answer honestly.
+    """
+    note = (
+        "Same interviews, two documents. The consultant sees who said what, "
+        "quoted verbatim. The employer sees group-level findings only — and "
+        f"topics backed by fewer than {k_anonymity} people are withheld into a "
+        "ledger, not summarised, because a sub-k topic can identify the people "
+        "who raised it."
+    )
+    if auto_validated:
+        note += (" Some or all verdicts were recorded by the auto-sim reviewer "
+                 "(a demo), not a human consultant.")
+    body = (
+        f"<h1>Deliverables · {esc(engagement_name)}</h1>"
+        f'<p class="sub">{interview_count} interviews · consultant view (left) vs '
+        f"employer release (right, k-anonymity {k_anonymity})</p>"
+        + _nav()
+        + f'<div class="note">{esc(note)}</div>'
+        + '<div class="split">'
+        + '<div class="card left"><div class="label">Consultant — inside the '
+          "firewall</div><h3>Attributed, verbatim, every claim cited</h3>"
+          f'<div class="doc"><pre>{esc(synthesis_md)}</pre></div></div>'
+        + '<div class="card right"><div class="label">Employer — what leaves '
+          "the room</div><h3>Aggregate-only, k-anonymity "
+          f'{k_anonymity}, withheld ledgered</h3>'
+          f'<div class="doc"><pre>{esc(employer_md)}</pre></div></div>'
+        + "</div>"
+    )
+    return layout("Deliverables", body, posture=posture, warn=warn)
 
 
 def message(*, title: str, text: str, back: str = "/", posture: str = "",

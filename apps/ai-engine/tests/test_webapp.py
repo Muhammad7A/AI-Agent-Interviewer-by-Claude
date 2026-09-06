@@ -112,7 +112,7 @@ class WorkspaceFlowTest(unittest.TestCase):
         page = self.client.get(f"/transcripts/{tid}/review").text
         self.assertEqual(page.count("awaiting review") > 0, True)
         # The quote must appear before the Accept button for each claim.
-        first_quote = page.index('class="quote"')
+        first_quote = page.index('class="quote')
         first_accept = page.index('value="accepted"')
         self.assertLess(first_quote, first_accept)
 
@@ -168,7 +168,8 @@ class WorkspaceFlowTest(unittest.TestCase):
                                "reason": "", "statement": ""},
                          follow_redirects=False)
         after = self.client.get(f"/transcripts/{tid}/report").text
-        self.assertIn("Validated findings", after)
+        self.assertIn("verdict accepted", after)
+        self.assertIn("open in transcript", after)
         self.assertNotIn("No validated findings", after)
 
     def test_employer_release_leaks_no_verbatim_testimony(self):
@@ -259,3 +260,44 @@ class ProductionGuardTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProvenanceUXTest(unittest.TestCase):
+    """The demo spine: a claim clicks through to the exact verbatim moment."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.data_dir = Path(self._tmp.name)
+        from ai_engine.webapp.app import create_app
+
+        settings = Settings(api_key=None, store_key=None, runtime=Runtime.DEV,
+                            data_dir=self.data_dir)
+        self.client = TestClient(create_app(settings))
+
+    def _simulated_transcript(self, client) -> str:
+        r = client.post("/interviews/new",
+                        data={"participant": "Dana Example", "mode": "simulated"},
+                        follow_redirects=False)
+        self.assertEqual(r.status_code, 303)
+        interview_id = r.headers["location"].rsplit("/", 1)[-1]
+        client.post(f"/interviews/{interview_id}/finish", follow_redirects=False)
+        return interview_id
+
+    def test_review_quotes_link_to_the_transcript_anchor(self):
+        tid = self._simulated_transcript(self.client)
+        page = self.client.get(f"/transcripts/{tid}/review").text
+        self.assertIn("#seg-", page, "review quotes must deep-link to the transcript")
+        self.assertIn("gate 1 grounded", page)
+
+    def test_transcript_page_anchors_every_segment(self):
+        tid = self._simulated_transcript(self.client)
+        page = self.client.get(f"/transcripts/{tid}").text
+        self.assertIn('id="seg-', page)
+        self.assertIn(".seg:target", page, "the highlight must exist for anchors")
+
+    def test_report_page_shows_what_the_gates_admitted_and_refused(self):
+        tid = self._simulated_transcript(self.client)
+        page = self.client.get(f"/transcripts/{tid}/report").text
+        self.assertIn("Grounded by construction", page)
+        self.assertIn("rejected as unsourced", page)

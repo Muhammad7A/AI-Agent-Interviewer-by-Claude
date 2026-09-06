@@ -280,6 +280,21 @@ class ConsultantService:
         return findings
 
     # -- reports ---------------------------------------------------------------
+    def _grounding_summary(self, transcript_id: str) -> dict | None:
+        """What the gates admitted and refused, for the grounded-by-construction
+        header. This is data from the tagging run, not copy."""
+        tagging = self.tag(transcript_id)
+        if tagging is None or tagging.report is None:
+            return None
+        r = tagging.report
+        return {
+            "proposed": r.total,
+            "grounded": r.grounded,
+            "unsourced": r.ungrounded,
+            "unsupported": len(tagging.entailment_rejected),
+            "confabulation": r.confabulation_rate,
+        }
+
     def consultant_report_markdown(self, transcript_id: str) -> str | None:
         """The consultant's deliverable: validated findings only, quotes attached.
 
@@ -296,10 +311,23 @@ class ConsultantService:
             interview_id=transcript.id,
             validator_kind="consultant",
             validator_name="Consultant",
+            grounding_summary=self._grounding_summary(transcript_id),
         )
         save_report(Path(self.settings.data_dir), f"{transcript_id}.report",
                     markdown, self.settings.cipher())
         return markdown
+
+    def consultant_report_page(self, transcript_id: str) -> dict | None:
+        """Everything the structured report page needs, or None if unknown."""
+        transcript = self.load_transcript(transcript_id)
+        if transcript is None:
+            return None
+        return {
+            "transcript_id": transcript_id,
+            "participant": transcript.interview_id or "—",
+            "findings": self.validated_findings(transcript_id),
+            "grounding": self._grounding_summary(transcript_id),
+        }
 
     def _findings_for(self, transcripts: list[Transcript]) -> list:
         findings = []

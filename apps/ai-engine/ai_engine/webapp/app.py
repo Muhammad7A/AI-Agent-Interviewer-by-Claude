@@ -180,13 +180,14 @@ def create_app(settings: Settings | None = None,
                                               posture=posture, warn=warn), status_code=404)
         segments = [{"id": s.id, "speaker": s.speaker.value, "text": s.text}
                     for s in transcript.segments]
-        body = views.document(
+        body = views.transcript_page(
             title=f"Transcript {transcript_id}",
-            subtitle=f"{len(segments)} segments · immutable",
-            markdown=transcript.render(),
+            subtitle=f"{len(segments)} segments · immutable · every finding links here",
+            segments=segments,
             back=f"/transcripts/{transcript_id}/review",
             posture=posture, warn=warn,
-            note="The stored record. Every quote in every report resolves to a span here.")
+            note="The stored record. Every quote in every report deep-links to the "
+                 "highlighted segment — provenance you can click.")
         return HTMLResponse(body)
 
     @app.get("/transcripts/{transcript_id}/review", response_class=HTMLResponse)
@@ -238,16 +239,14 @@ def create_app(settings: Settings | None = None,
     @app.get("/transcripts/{transcript_id}/report", response_class=HTMLResponse)
     def consultant_report(request: Request, transcript_id: str) -> HTMLResponse:
         posture, warn = svc.posture()
-        markdown = svc.consultant_report_markdown(transcript_id)
-        if markdown is None:
+        page = svc.consultant_report_page(transcript_id)
+        if page is None:
             return HTMLResponse(views.message(title="Not found", text="Unknown transcript.",
                                               posture=posture, warn=warn), status_code=404)
-        return HTMLResponse(views.document(
-            title="Consultant report", subtitle=f"{transcript_id} · validated findings only",
-            markdown=markdown, back=f"/transcripts/{transcript_id}/review",
-            posture=posture, warn=warn,
-            note="Only findings you accepted or amended appear. Each carries the quote "
-                 "it rests on."))
+        return HTMLResponse(views.consultant_report_page(
+            transcript_id=page["transcript_id"], participant=page["participant"],
+            findings=page["findings"], grounding=page["grounding"],
+            posture=posture, warn=warn))
 
     @app.get("/transcripts/{transcript_id}/employer", response_class=HTMLResponse)
     def employer_release(request: Request, transcript_id: str) -> HTMLResponse:

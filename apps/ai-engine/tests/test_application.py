@@ -102,6 +102,24 @@ class InterviewUseCaseTest(unittest.TestCase):
         for claim in tagging.claims:
             self.assertNotIn(claim.statement, employer_md)
 
+    def test_the_report_links_every_finding_to_its_verbatim_moment(self):
+        transcript_id = self._run_simulated()
+        tagging = self.service.tag(transcript_id)
+        for claim in tagging.claims:
+            self.service.record_verdict(transcript_id, claim.id,
+                                        Verdict.ACCEPTED.value)
+        claim = tagging.claims[0]
+        segment_id = claim.evidence[0].ref.segment_id
+
+        markdown = self.service.consultant_report_markdown(transcript_id)
+        self.assertIn(f"/transcripts/{transcript_id}#seg-{segment_id}", markdown)
+        self.assertIn("Grounded by construction", markdown)
+        self.assertIn(str(tagging.report.total), markdown)
+
+        page = self.service.consultant_report_page(transcript_id)
+        self.assertEqual(page["grounding"]["proposed"], tagging.report.total)
+        self.assertEqual(len(page["findings"]), len(tagging.claims))
+
     def test_dashboard_rows_count_claims_and_verdicts(self):
         self._run_simulated()
         rows = self.service.dashboard_rows()

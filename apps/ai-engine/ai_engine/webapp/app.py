@@ -272,6 +272,40 @@ def create_app(settings: Settings | None = None,
                  "engagement-level report instead once several people have been "
                  "interviewed — see the engagement report."))
 
+    @app.post("/demo/run")
+    def run_demo(request: Request):
+        from ..application.demo import run_demo_engagement
+
+        result = run_demo_engagement(svc)
+        return RedirectResponse(
+            f"/engagements/{result.engagement_id}/synthesis", status_code=303)
+
+    @app.get("/engagements/{engagement_id}/synthesis", response_class=HTMLResponse)
+    def engagement_synthesis(request: Request, engagement_id: str) -> HTMLResponse:
+        posture, warn = svc.posture()
+        transcripts = svc.transcripts_for_engagement(engagement_id)
+        if not transcripts:
+            return HTMLResponse(views.message(
+                title="No interviews in this engagement",
+                text="Run the demo or start interviews into it first.",
+                posture=posture, warn=warn), status_code=404)
+        markdown = svc.engagement_synthesis_markdown(engagement_id)
+        auto = any(
+            "auto-sim" in (v.validator_kind or "")
+            for tid in transcripts
+            for v in svc.verdicts(tid).values()
+        )
+        return HTMLResponse(views.document(
+            title="Engagement synthesis",
+            subtitle=f"{svc.engagement_name(engagement_id)} · "
+                     f"{len(transcripts)} interviews · attributed verbatim detail "
+                     f"(consultant view)",
+            markdown=markdown, back="/", posture=posture, warn=warn,
+            note=("Some or all verdicts in this engagement were recorded by the "
+                  "auto-sim reviewer (a demo), not a human consultant."
+                  if auto else
+                  "Every verdict in this engagement was recorded by a human "
+                  "consultant through the review page.")))
     @app.get("/engagement", response_class=HTMLResponse)
     def engagement(request: Request) -> HTMLResponse:
         posture, warn = svc.posture()

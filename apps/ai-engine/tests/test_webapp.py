@@ -301,3 +301,34 @@ class ProvenanceUXTest(unittest.TestCase):
         page = self.client.get(f"/transcripts/{tid}/report").text
         self.assertIn("Grounded by construction", page)
         self.assertIn("rejected as unsourced", page)
+
+
+class DemoRunTest(unittest.TestCase):
+    """POST /demo/run — the speedrun demo: one click, a full engagement."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.data_dir = Path(self._tmp.name)
+        from ai_engine.webapp.app import create_app
+
+        settings = Settings(api_key=None, store_key=None, runtime=Runtime.DEV,
+                            data_dir=self.data_dir)
+        self.client = TestClient(create_app(settings))
+
+    def test_the_demo_runs_end_to_end_and_lands_on_the_synthesis(self):
+        r = self.client.post("/demo/run", follow_redirects=False)
+        self.assertEqual(r.status_code, 303)
+        synthesis_url = r.headers["location"]
+        self.assertIn("/engagements/", synthesis_url)
+        self.assertIn("/synthesis", synthesis_url)
+
+        page = self.client.get(synthesis_url)
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("Engagement synthesis", page.text)
+        self.assertIn("auto-sim", page.text,
+                      "the page must say which verdicts were machine-made")
+
+        # The engagement shows up on the dashboard with its interviews.
+        dash = self.client.get("/").text
+        self.assertIn("Speedrun demo", dash)

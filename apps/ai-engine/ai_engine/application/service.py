@@ -275,8 +275,14 @@ class ConsultantService:
                          kind="consultant")
 
     def record_verdict(self, transcript_id: str, claim_id: str, verdict: str,
-                       reason: str = "", new_statement: str = "") -> bool:
-        """Record one human validation decision through the gate's invariants."""
+                       reason: str = "", new_statement: str = "",
+                       validator: Validator | None = None) -> bool:
+        """Record one validation decision through the gate's invariants.
+
+        The validator defaults to the consultant identity; the demo passes the
+        auto-sim validator, because a machine verdict must never be recorded as
+        a human one.
+        """
         transcript = self.load_transcript(transcript_id)
         if transcript is None:
             return False
@@ -293,7 +299,7 @@ class ConsultantService:
         if chosen is Verdict.AMENDED:
             correction = Correction(new_statement=new_statement.strip() or None)
         gate = ValidationGate(
-            self._validator(),
+            validator or self._validator(),
             EventLog(self.settings.data_dir, transcript_id, layer="validation",
                      cipher=self.settings.cipher()))
         try:
@@ -391,6 +397,24 @@ class ConsultantService:
                         f.claim, transcript,
                         participant_id=alias, participant_name=alias))
         return findings
+
+    def engagement_synthesis_markdown(self, engagement_id: str) -> str:
+        """The consultant's cross-interview synthesis: corroboration, contradictions,
+        candour. The consultant is inside the firewall, so this view keeps
+        attributed, verbatim detail (policy: for_consultant)."""
+        transcripts = [t for t in (self.load_transcript(tid)
+                                   for tid in self.transcripts_for_engagement(engagement_id))
+                       if t is not None]
+        aggregation = aggregate(
+            self._findings_for(transcripts),
+            make_relation_checker(get_llm_client(self.settings)))
+        package = release(aggregation, policy=ReleasePolicy.for_consultant())
+        markdown = render_release_report(
+            package, org_name=self.engagement_name(engagement_id),
+            interview_count=len(transcripts))
+        save_report(Path(self.settings.data_dir), f"synthesis.{engagement_id}",
+                    markdown, self.settings.cipher())
+        return markdown
 
     def employer_release_markdown(self, transcript_ids: list[str] | None = None,
                                   *, org_name: str = "This engagement") -> str:

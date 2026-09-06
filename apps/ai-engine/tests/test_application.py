@@ -204,3 +204,51 @@ class BatchIntakeWebTest(unittest.TestCase):
             self.assertEqual(r.status_code, 303)
             page = client.get("/invitations").text
             self.assertEqual(page.count("/i/"), 3)
+
+
+class DemoEngagementTest(unittest.TestCase):
+    """The one-click demo: parallel interviews in, both deliverables out."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.data_dir = Path(self._tmp.name)
+        self.service = ConsultantService(_settings(self.data_dir))
+
+    def test_the_whole_engagement_runs_offline_in_one_call(self):
+        from ai_engine.application.demo import _personas, run_demo_engagement
+
+        result = run_demo_engagement(self.service)
+        self.assertEqual(len(result.interviews), len(_personas()))
+        self.assertGreater(result.claims, 0)
+        # Stored, pseudonymized, grouped under the engagement.
+        for item in result.interviews:
+            transcript = self.service.load_transcript(item["transcript_id"])
+            self.assertIsNotNone(transcript)
+            self.assertTrue(transcript.finalized)
+            self.assertNotIn(item["participant"], transcript.render())
+            self.assertEqual(transcript.engagement_id, result.engagement_id)
+            # Verdicts were recorded through the real ledger, labelled auto-sim.
+            verdicts = self.service.verdicts(item["transcript_id"])
+            self.assertTrue(verdicts)
+            self.assertTrue(all(v.validator_kind == "auto-sim"
+                                for v in verdicts.values()))
+
+    def test_the_synthesis_reports_the_engagement(self):
+        from ai_engine.application.demo import run_demo_engagement
+
+        result = run_demo_engagement(self.service)
+        md = self.service.engagement_synthesis_markdown(result.engagement_id)
+        self.assertIn("Speedrun demo", md)
+        self.assertIn(f"Interviews:** {len(result.interviews)}", md)
+        # Consultant is inside the firewall: verbatim detail with attribution.
+        self.assertIn("evidence:", md)
+
+    def test_the_demo_is_deterministic_in_mock_mode(self):
+        from ai_engine.application.demo import run_demo_engagement
+
+        first = run_demo_engagement(self.service, engagement_name="Demo A")
+        second = run_demo_engagement(self.service, engagement_name="Demo B")
+        self.assertEqual([i["claims"] for i in first.interviews],
+                         [i["claims"] for i in second.interviews],
+                         "the mock demo must not vary between pitches")

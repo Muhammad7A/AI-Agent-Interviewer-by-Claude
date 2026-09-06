@@ -38,7 +38,7 @@ class DatasetTest(unittest.TestCase):
     def test_the_raw_dataset_still_carries_edge_and_adversarial_cases(self):
         from ai_engine.lab.dataset import DATASET_SCHEMA
 
-        raw = json.loads((Path("ai_engine/lab/data/golden.json")
+        raw = json.loads((Path("ai_engine/lab/datasets/golden.json")
                           .read_text(encoding="utf-8")))
         self.assertEqual(raw["schema"], DATASET_SCHEMA)
         kinds = {s["kind"] for s in raw["scenarios"]}

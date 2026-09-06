@@ -52,5 +52,5 @@ def load_golden() -> tuple[str, list[Scenario]]:
     dataset. Non-golden records in the same file (edge/adversarial cases with
     documented known-gaps) are measurable via run_suite but never gate CI —
     a known-gap must not fail the build, it must be VISIBLE."""
-    _version, scenarios = load_dataset(Path(__file__).parent / "data" / "golden.json")
+    _version, scenarios = load_dataset(Path(__file__).parent / "datasets" / "golden.json")
     return _version, [s for s in scenarios if s.kind == "golden"]

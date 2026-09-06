@@ -17,7 +17,7 @@ from .study import render_study_report, run_study
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ontora confidence calibration study")
+    parser = argparse.ArgumentParser(description="Groundwork confidence calibration study")
     parser.add_argument("--write", action="store_true", help="write the report to the data dir")
     parser.add_argument("--candor", default="open", help="persona candor (default: open)")
     parser.add_argument("--generate", type=int, metavar="N", default=None,

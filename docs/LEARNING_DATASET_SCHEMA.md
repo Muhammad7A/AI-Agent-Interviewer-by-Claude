@@ -1,6 +1,6 @@
-# Ontora Learning Dataset — Schema
+# Groundwork Learning Dataset — Schema
 
-> The memory system that makes Ontora smarter over time. Not storage tech, not UI —
+> The memory system that makes Groundwork smarter over time. Not storage tech, not UI —
 > the *structure of the data* required to learn which questions uncover truth, which
 > outputs consultants trust, and which insights create value. Its one load-bearing
 > rule: **never collapse the four layers.**

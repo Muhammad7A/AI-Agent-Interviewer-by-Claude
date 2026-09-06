@@ -20,7 +20,7 @@ from __future__ import annotations
 import os
 from typing import Protocol, runtime_checkable
 
-KEY_ENV = "ONTORA_STORE_KEY"
+KEY_ENV = "GROUNDWORK_STORE_KEY"
 
 
 class CipherUnavailable(RuntimeError):
@@ -134,7 +134,7 @@ def make_cipher(key: str | None = None) -> Cipher:
 
 
 def assert_encrypted_in_production(cipher: Cipher, what: str) -> None:
-    """Refuse a plaintext store when ``ONTORA_ENV=production``.
+    """Refuse a plaintext store when ``GROUNDWORK_ENV=production``.
 
     Called by every store that persists testimony-derived material, so the
     at-rest guarantee holds at the persistence layer and not only at whatever
@@ -146,6 +146,6 @@ def assert_encrypted_in_production(cipher: Cipher, what: str) -> None:
 
     if runtime_from_env() is Runtime.PRODUCTION and not cipher.protects_at_rest:
         raise RuntimeError(
-            f"{what} would be written in plaintext, but ONTORA_ENV=production "
+            f"{what} would be written in plaintext, but GROUNDWORK_ENV=production "
             f"requires encryption at rest. Set {KEY_ENV} (and install the "
             f"'secure' extra) before serving real interviews.")

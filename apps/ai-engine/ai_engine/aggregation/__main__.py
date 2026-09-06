@@ -26,7 +26,7 @@ from .scenario import northwind_org
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ontora multi-interview aggregation")
+    parser = argparse.ArgumentParser(description="Groundwork multi-interview aggregation")
     parser.add_argument("--write", action="store_true", help="write the org report to the data dir")
     parser.add_argument("--candor", default="open", help="persona candor for the demo org")
     parser.add_argument("--audience", choices=("consultant", "employer"),
@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     settings = load_settings()
     llm = get_llm_client(settings)
     mode = "LIVE model" if llm is not None else "MOCK (deterministic, no API key)"
-    print(f"# Ontora aggregation — {mode}")
+    print(f"# Groundwork aggregation — {mode}")
 
     # Pseudonymize at ingest: the real name enters here and goes no further, so
     # every downstream artifact carries only a per-engagement pseudonym (Art. X).

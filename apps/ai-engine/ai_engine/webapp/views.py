@@ -66,7 +66,7 @@ def layout(title: str, body: str, *, posture: str = "", warn: bool = False) -> s
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
         '<meta name=viewport content="width=device-width,initial-scale=1">'
-        f"<title>{esc(title)} · Ontora</title><style>{CSS}</style></head><body>"
+        f"<title>{esc(title)} · Groundwork</title><style>{CSS}</style></head><body>"
         f"{bar}<main>{body}</main></body></html>"
     )
 
@@ -220,7 +220,7 @@ def transcript_turns(segments: list[dict]) -> str:
     out = ""
     for seg in segments:
         cls = "q" if seg["speaker"] == "interviewer" else "a"
-        who = "Ontora" if seg["speaker"] == "interviewer" else "Participant"
+        who = "Groundwork" if seg["speaker"] == "interviewer" else "Participant"
         out += (f'<div class="turn"><div class="{cls}">{esc(who)}: {esc(seg["text"])}</div>'
                 f'<div class="meta">{esc(seg["id"])}</div></div>')
     return out

@@ -4,7 +4,7 @@ The transcript store, event logs, and caches were always cipher-wrapped; the
 leaks lived at the edges — the re-identification key written beside the
 employer deliverable, a pseudonymizer that forgot the engagement on restart
 (and silently inflated k), tampered log lines swallowed on read, an
-ONTORA_ENV parse that failed open, and a production posture enforced only at
+GROUNDWORK_ENV parse that failed open, and a production posture enforced only at
 whatever entry point remembered it. Each test pins one closed edge.
 """
 import base64
@@ -20,7 +20,7 @@ from ai_engine.persistence.event_log import EventLog, TamperedEventLog
 from ai_engine.persistence.transcript_store import TranscriptStore
 from ai_engine.privacy.identity import Pseudonymizer, restricted_dir
 
-ENV = "ONTORA_ENV"
+ENV = "GROUNDWORK_ENV"
 
 
 class _StubCipher:

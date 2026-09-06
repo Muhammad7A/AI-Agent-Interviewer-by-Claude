@@ -14,7 +14,7 @@ excellent for testing and a liability in a deployment:
     plaintext.
 
 Both are correct for local development and unacceptable in production, so the
-difference is made explicit: ``ONTORA_ENV=production`` refuses to start unless a real
+difference is made explicit: ``GROUNDWORK_ENV=production`` refuses to start unless a real
 model and a real cipher are configured. Failing loudly at startup is the only safe
 version of this — a silent mock is indistinguishable from a working system until
 someone reads a transcript that nobody ever said.
@@ -28,7 +28,7 @@ from pathlib import Path
 
 from .persistence.crypto import KEY_ENV, Cipher, cipher_available, make_cipher
 
-# Default to a current Claude model; override with ONTORA_MODEL.
+# Default to a current Claude model; override with GROUNDWORK_MODEL.
 #
 # This default must be a *real* model id. The previous value named a model that
 # does not exist, so the first live call returned 404 — and because 404 is
@@ -40,11 +40,11 @@ from .persistence.crypto import KEY_ENV, Cipher, cipher_available, make_cipher
 #
 # Sonnet rather than the largest model: an engagement is roughly four hundred
 # calls, and the deterministic ones (tagging, entailment, relation) are
-# classification work. Set ONTORA_MODEL to a larger model if interview cognition
+# classification work. Set GROUNDWORK_MODEL to a larger model if interview cognition
 # needs it — that is a one-variable change.
-DEFAULT_MODEL = os.environ.get("ONTORA_MODEL", "claude-sonnet-5")
+DEFAULT_MODEL = os.environ.get("GROUNDWORK_MODEL", "claude-sonnet-5")
 
-ENV_VAR = "ONTORA_ENV"
+ENV_VAR = "GROUNDWORK_ENV"
 
 
 class Runtime(str, Enum):
@@ -59,7 +59,7 @@ class ConfigurationError(RuntimeError):
 
 
 def runtime_from_env() -> Runtime:
-    """Parse ``ONTORA_ENV`` — and refuse an unrecognized value.
+    """Parse ``GROUNDWORK_ENV`` — and refuse an unrecognized value.
 
     The whole point of the production posture is refusing unsafe startup, so a
     typo'd value ("produnction") must be an error, not silently mean dev: a guard
@@ -88,15 +88,15 @@ class Settings:
     runtime: Runtime = field(default_factory=runtime_from_env)
     #: Reuse deterministic derived results across page views. Off only for
     #: benchmarking what an uncached run actually costs.
-    cache_derived: bool = os.environ.get("ONTORA_CACHE", "1") not in ("0", "false", "no")
-    max_turns: int = int(os.environ.get("ONTORA_MAX_TURNS", "14"))
-    temperature: float = float(os.environ.get("ONTORA_TEMPERATURE", "0.4"))
-    data_dir: Path = Path(os.environ.get("ONTORA_DATA_DIR", "data/interviews"))
+    cache_derived: bool = os.environ.get("GROUNDWORK_CACHE", "1") not in ("0", "false", "no")
+    max_turns: int = int(os.environ.get("GROUNDWORK_MAX_TURNS", "14"))
+    temperature: float = float(os.environ.get("GROUNDWORK_TEMPERATURE", "0.4"))
+    data_dir: Path = Path(os.environ.get("GROUNDWORK_DATA_DIR", "data/interviews"))
     #: An oversized answer would be appended to the transcript verbatim and sent
     #: as part of every later model call — a multi-MB paste guarantees a permanent
     #: request failure on every future turn, wedging the interview with no way to
     #: retract the answer. Capped at the web layer, where the input arrives.
-    max_answer_chars: int = int(os.environ.get("ONTORA_MAX_ANSWER_CHARS", "20000"))
+    max_answer_chars: int = int(os.environ.get("GROUNDWORK_MAX_ANSWER_CHARS", "20000"))
 
     @property
     def has_live_model(self) -> bool:
@@ -207,7 +207,7 @@ def preflight_model(settings: Settings | None = None) -> str:
     except Exception as exc:
         raise ModelUnavailable(
             f"the configured model {settings.model!r} did not answer a trivial "
-            f"request ({type(exc).__name__}: {exc}). Check ONTORA_MODEL names a "
+            f"request ({type(exc).__name__}: {exc}). Check GROUNDWORK_MODEL names a "
             f"current model and that ANTHROPIC_API_KEY is valid."
         ) from exc
     return settings.model

@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ontora-ai-engine"
+name = "groundwork-ai-engine"
 version = "0.0.1"
-description = "Ontora AI cognition — the runnable interview loop (thin slice)."
+description = "Groundwork AI cognition — the runnable interview loop (thin slice)."
 requires-python = ">=3.10"
 dependencies = []
 
@@ -20,14 +20,14 @@ secure = ["cryptography>=42"]
 web = ["fastapi>=0.110", "uvicorn>=0.27", "python-multipart>=0.0.9"]
 
 [project.scripts]
-ontora-interview = "ai_engine.cli:main"
-ontora-eval = "ai_engine.eval.__main__:main"
-ontora-aggregate = "ai_engine.aggregation.__main__:main"
-ontora-calibrate = "ai_engine.confidence.__main__:main"
-ontora-synth = "ai_engine.synthetic.__main__:main"
-ontora-fuzz = "ai_engine.fuzz.__main__:main"
-ontora-web = "ai_engine.webapp.__main__:main"
-ontora-interview-surface = "ai_engine.employee.__main__:main"
+groundwork-interview = "ai_engine.cli:main"
+groundwork-eval = "ai_engine.eval.__main__:main"
+groundwork-aggregate = "ai_engine.aggregation.__main__:main"
+groundwork-calibrate = "ai_engine.confidence.__main__:main"
+groundwork-synth = "ai_engine.synthetic.__main__:main"
+groundwork-fuzz = "ai_engine.fuzz.__main__:main"
+groundwork-web = "ai_engine.webapp.__main__:main"
+groundwork-interview-surface = "ai_engine.employee.__main__:main"
 
 [tool.setuptools]
 packages = [

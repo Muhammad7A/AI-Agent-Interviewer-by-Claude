@@ -1,6 +1,6 @@
-# Ontora — Pre-Seed Investment Committee Review
+# Groundwork — Pre-Seed Investment Committee Review
 
-> Closed-door red team convened before Ontora's first institutional raise. Five
+> Closed-door red team convened before Groundwork's first institutional raise. Five
 > independent reviewers, no attachment to the project, reputations staked on
 > finding the flaws first. This is a transcript, not a brochure. It is not polite.
 
@@ -23,7 +23,7 @@ $400k for enlightenment. What's the bleeding neck?
 with a discovery phase — six to ten weeks of associates interviewing employees. It's
 slow, expensive, and inconsistent. *But* — and this is fatal — discovery is the
 *cheapest, least defensible* part of my old business. The money is in
-implementation and in the trusted relationship. Ontora is automating the loss
+implementation and in the trusted relationship. Groundwork is automating the loss
 leader.
 
 **Devi:** So it's a feature of a consulting engagement, not a company.
@@ -90,7 +90,7 @@ from text. Maybe. But even a *candid* employee only sees their corner. You're
 aggregating 200 partial, biased views and calling it truth.
 
 **Devi:** Where do consultants ignore the AI? Everywhere it disagrees with their
-gut. A partner walks in with a hypothesis after two conversations. If Ontora's
+gut. A partner walks in with a hypothesis after two conversations. If Groundwork's
 output matches, it's "confirmation, nice." If it contradicts, it's "the AI doesn't
 understand our client." It's unfalsifiable to the user either way.
 
@@ -98,7 +98,7 @@ understand our client." It's unfalsifiable to the user either way.
 200 people and concluded finance is your bottleneck." First question: "Who said
 that?" You can't tell them — anonymity. So it's an unsourced accusation about a
 named department. No exec acts on that. At Palantir we learned: humans trust systems
-that let them *drill to the source*. Ontora's central privacy promise destroys its
+that let them *drill to the source*. Groundwork's central privacy promise destroys its
 own credibility with the buyer.
 
 **Angela:** That's the sharpest point made yet. The anonymity that gets employees to
@@ -237,7 +237,7 @@ killing.
 Organizations don't share a schema. Marcus lived this.
 
 **Marcus:** We did. At Palantir the entire lesson was: the ontology is *per-customer*,
-and the value is in the forward-deployed work of fitting it. Ontora's universal
+and the value is in the forward-deployed work of fitting it. Groundwork's universal
 Workflow/Activity/Handoff schema will shatter on the third customer — a hospital, a
 bank, and a game studio do not decompose the same way. Which contexts should merge?
 Insights and Drift are the same thing — analysis over a belief model. Knowledge and
@@ -261,23 +261,23 @@ flexible* knowledge substrate. The architecture solves problems no customer has.
 **Yuki (labs):** **OpenAI / Anthropic** could build the interview agent in a quarter —
 it's a prompt and an eval harness. They *won't* focus on this enterprise niche soon,
 so it's not an active threat, but it means the *agent itself is not a moat*. The
-model layer is rented by everyone including Ontora.
+model layer is rented by everyone including Groundwork.
 
 **Angela (Microsoft):** **Microsoft** is the assassin. They own the workplace — Teams,
 Viva, Graph, the org chart, the calendars, the digital exhaust — *and* the
 distribution into every enterprise, *and* Copilot. They can surface "how your org
 works" from data I already gave them, no interviews, no legal fight, bundled at
 $0 marginal price. If org intelligence becomes valuable, Microsoft ships it as a
-Viva feature and Ontora evaporates.
+Viva feature and Groundwork evaporates.
 
 **Marcus (Palantir):** **Palantir** copies the substrate and out-deploys them. We have
 the FDE muscle, the security clearances, the enterprise trust, and the ontology
 tooling. If interviews prove valuable we bolt them onto Foundry. Our moat —
-deployment and trust — is the exact moat Ontora *lacks*.
+deployment and trust — is the exact moat Groundwork *lacks*.
 
 **Reinhardt (the firms):** **McKinsey / Deloitte** won't productize this — channel
 conflict — but they'll build good-enough *internal* versions to defend margins, which
-removes Ontora's most natural channel. Deloitte especially will slap an LLM on their
+removes Groundwork's most natural channel. Deloitte especially will slap an LLM on their
 methodology and call it proprietary.
 
 **Angela (systems of record):** **Workday / SAP** own the HR and process data and the

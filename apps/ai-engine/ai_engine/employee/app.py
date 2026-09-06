@@ -67,7 +67,7 @@ def create_employee_app(settings: Settings | None = None) -> FastAPI:
     settings.assert_deployable()
 
     sessions = Sessions(settings=settings)
-    app = FastAPI(title="Ontora interview", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Groundwork interview", docs_url=None, redoc_url=None)
     app.state.sessions = sessions
 
     def store() -> InvitationStore:

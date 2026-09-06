@@ -94,7 +94,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # aggregation — quietly reporting a k the data does not have.
     workspace = Workspace(settings=settings,
                           pseudonymizer=Pseudonymizer.load_or_create(settings.data_dir))
-    app = FastAPI(title="Ontora consultant workspace", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Groundwork consultant workspace", docs_url=None, redoc_url=None)
     app.state.workspace = workspace
 
     def ws(request: Request) -> Workspace:

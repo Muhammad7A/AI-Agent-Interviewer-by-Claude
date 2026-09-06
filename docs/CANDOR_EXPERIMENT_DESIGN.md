@@ -1,6 +1,6 @@
 # The 30-Day Candor Experiment
 
-**Testing F1 — the top existential risk.** Ontora only works if real employees
+**Testing F1 — the top existential risk.** Groundwork only works if real employees
 disclose decision-relevant, self-costly truths to an AI interviewer that acts on
 behalf of their employer. The adversarial failure analysis argues candor is
 *structurally capped*: people won't tell an employer's bot the things that make
@@ -16,7 +16,7 @@ the risk is real.
 ## 1. The one question
 
 > **Under the best trust conditions we can realistically offer, do employees in a
-> real organization disclose Tier 2–4 sensitive truths through Ontora's AI
+> real organization disclose Tier 2–4 sensitive truths through Groundwork's AI
 > interview at a rate high enough — and clean enough — to produce
 > decision-grade organizational insight a consultant would stake a recommendation
 > on?**
@@ -58,7 +58,7 @@ Candor is not verbosity and not sentiment. It is **recovered costly truth.**
 
 ### 2.2 The tiers of truth (candor is only meaningful at the top)
 
-Ontora's commercial value lives in Tiers 2–4. Tier 0–1 disclosure proves
+Groundwork's commercial value lives in Tiers 2–4. Tier 0–1 disclosure proves
 nothing — nobody hides their toolset.
 
 | Tier | Content | Cost to disclose | Commercial value | Example |
@@ -81,7 +81,7 @@ product**, and gate the second on the first.
 
 - **Q1 — Ceiling / setting question:** Do employees disclose Tier 2–4 truths
   through *any* digital, employer-adjacent channel at all? This is about human
-  behavior in the deployment context, not the AI. If the answer is no, **Ontora
+  behavior in the deployment context, not the AI. If the answer is no, **Groundwork
   is dead regardless of how good the AI is**, and we learn it in Week 2 for
   almost nothing.
 - **Q2 — Channel / product question:** Does the *AI interviewer specifically*
@@ -126,7 +126,7 @@ direct-disclosure rate is then benchmarked against `p_true`.
 
 ### E3 — Multi-channel differential candor (within-subject)
 The same subjects pass through three elicitation channels (order
-counterbalanced): **anonymous survey**, **AI interview (Ontora)**, **trusted
+counterbalanced): **anonymous survey**, **AI interview (Groundwork)**, **trusted
 human interview** (external consultant under NDA, employer-blinded). Disclosure
 gaps between channels isolate the channel effect. The best non-AI channel is the
 *ceiling*; the AI is judged relative to it, not in a vacuum.
@@ -172,7 +172,7 @@ the AI channel, randomized by index-topic block:
 The A–B delta on Tier 2–4 disclosure quantifies **how much candor is bought by
 the trust guarantee** — the single most important number for the product's
 architecture. (We deliberately do *not* run a fully anonymous no-consultant arm
-as primary, because Ontora's value proposition requires the consultant loop;
+as primary, because Groundwork's value proposition requires the consultant loop;
 but it can be added as a ceiling reference if budget allows.)
 
 ### 5.3 Randomization & counterbalancing
@@ -187,7 +187,7 @@ but it can be added as a ceiling reference if budget allows.)
 
 ## 6. Instruments
 
-1. **AI interview protocol (Ontora).** A 20–25 min structured-but-adaptive
+1. **AI interview protocol (Groundwork).** A 20–25 min structured-but-adaptive
    interview whose probes are explicitly engineered to reach Tiers 2–4:
    hypothesis-driven follow-ups, specificity conversion ("can you give me the
    last concrete instance?"), contradiction surfacing, and safety/candor moves
@@ -320,7 +320,7 @@ the experimental treatment:
 - Right to withdraw; no employment consequence; independent point of contact.
 - Legal review of retention, and of any unsourced-accusation exposure (F5).
 - **A leak here doesn't just void the study — it is the F3/F5 failure happening
-  live.** Running the guarantee cleanly is itself a test of whether Ontora can
+  live.** Running the guarantee cleanly is itself a test of whether Groundwork can
   operate the guarantee at all.
 
 ## 13. Cost & team

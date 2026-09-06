@@ -1,6 +1,6 @@
-# The Ontora Engineering Constitution
+# The Groundwork Engineering Constitution
 
-*The permanent law governing how Ontora is built, extended, refactored, reviewed,
+*The permanent law governing how Groundwork is built, extended, refactored, reviewed,
 and removed. Not an architecture document, not a spec, not a plan — the small set
 of rules that keep the system coherent when the team is larger than any one person
 can supervise.*
@@ -9,7 +9,7 @@ can supervise.*
 
 ## Preamble
 
-Ontora builds a system that claims to know things about real organizations and
+Groundwork builds a system that claims to know things about real organizations and
 real people. That claim is the whole product, and it is fragile: a fluent system
 that is confidently wrong is worse than no system at all. Our engineering choices
 are therefore not matters of taste — they are the difference between a trustworthy
@@ -34,7 +34,7 @@ everywhere else.
 Fourteen principles from which every article is derived. If an article ever
 contradicts a canon, the canon wins and the article is amended.
 
-- **C1 — Evidence-first.** Nothing enters Ontora's model of the world without
+- **C1 — Evidence-first.** Nothing enters Groundwork's model of the world without
   evidence attached at creation. No evidence, no existence.
 - **C2 — Truth is not confidence.** What is true and how sure we are are two
   different things, separately represented. We never collapse them.
@@ -88,7 +88,7 @@ contradicts a canon, the canon wins and the article is amended.
 - **Rule.** Every node, edge, observation, finding, and recommendation carries ≥1
   `Evidence` at the moment of creation. Inferred evidence resolves deterministically
   to immutable transcript segments via `EvidenceRef` + `Derivation`.
-- **Why.** Ontora's product *is* traceable truth. An unsourced accusation is both a
+- **Why.** Groundwork's product *is* traceable truth. An unsourced accusation is both a
   correctness failure and a legal liability (F5).
 - **Forbids.** Creating any truth-bearing object without evidence; mutating a source
   segment an `EvidenceRef` points to; evidence that dead-ends in another inference
@@ -222,7 +222,7 @@ contradicts a canon, the canon wins and the article is amended.
   employer, and released only above a k-anonymity threshold. Raw sensitive
   disclosure never reaches management. Identity resolution is explicit, probabilistic,
   and reversible.
-- **Why.** The neutral-third-party trust posture is Ontora's only structural moat and
+- **Why.** The neutral-third-party trust posture is Groundwork's only structural moat and
   the precondition for candor (F1, F3). One leak is not a bug — it is the company.
 - **Forbids.** Joining raw testimony to identity outside the sanctioned resolution
   seam; surfacing sub-threshold aggregates; attributing Tier 3–4 content to a named

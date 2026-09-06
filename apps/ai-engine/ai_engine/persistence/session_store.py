@@ -33,7 +33,7 @@ from ..transcript.model import Speaker, Transcript
 from .crypto import Cipher, NullCipher
 from .transcript_store import transcript_from_dict, transcript_to_dict
 
-SCHEMA = "ontora.session/v1"
+SCHEMA = "groundwork.session/v1"
 _PLAIN = ".session.json"
 _ENCRYPTED = ".session.enc"
 

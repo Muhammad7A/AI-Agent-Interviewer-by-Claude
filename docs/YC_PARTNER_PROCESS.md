@@ -1,4 +1,4 @@
-# Ontora — YC Partner Process (Internal)
+# Groundwork — YC Partner Process (Internal)
 
 > **CONFIDENTIAL · YC INTERNAL · NOT FOR FOUNDERS.** Working notes across the full
 > partner process. Candid by design. Reasoned from the company's own materials
@@ -387,25 +387,25 @@ low-probability, enormous-magnitude. *Deal:* standard, high conviction on magnit
 
 ## PHASE 6 — Competitive thought experiment: if a giant launches it
 
-- **OpenAI launches it.** Ontora survives *short-term*. OpenAI won't do the
+- **OpenAI launches it.** Groundwork survives *short-term*. OpenAI won't do the
   unglamorous enterprise-vertical, forward-deployed, legal-heavy work; it's a
   platform company, not a discovery-consultancy. But it proves the agent isn't a
   moat. **Survives on focus.**
-- **Microsoft launches it (in Viva).** Ontora is in serious danger. Microsoft has the
+- **Microsoft launches it (in Viva).** Groundwork is in serious danger. Microsoft has the
   data (Graph), the distribution (every enterprise), and can bundle at zero marginal
-  price. Ontora's only survival is the thing Microsoft won't do: *interview humans for
+  price. Groundwork's only survival is the thing Microsoft won't do: *interview humans for
   tacit knowledge* and *forward-deploy trust.* If tacit-knowledge value is real,
-  Ontora lives in the gap; if data-only is "good enough," Ontora dies. **Coin flip,
+  Groundwork lives in the gap; if data-only is "good enough," Groundwork dies. **Coin flip,
   and it's the existential one.**
 - **Palantir launches it.** Dangerous. Same forward-deployed DNA, more trust, more
-  security clearance, existing enterprise footprint. Ontora survives only by being
+  security clearance, existing enterprise footprint. Groundwork survives only by being
   faster and cheaper for the mid-market Palantir ignores. **Survives by going
   down-market and fast.**
-- **McKinsey launches it (internal).** Doesn't kill Ontora directly (won't productize
+- **McKinsey launches it (internal).** Doesn't kill Groundwork directly (won't productize
   externally — channel conflict) but *neutralizes the consulting channel* and
   validates the category, inviting others. **Survives, but loses a channel.**
 
-**Verdict:** Ontora survives every giant *except possibly Microsoft*, and only by
+**Verdict:** Groundwork survives every giant *except possibly Microsoft*, and only by
 owning the two things giants structurally won't: **tacit-knowledge elicitation** and
 **forward-deployed trust.** If neither is a real edge, no strategy saves it.
 
@@ -548,7 +548,7 @@ enough, or the aggregate findings never become credible enough for an executive 
 bet a reorg on — and the product is forever "interesting, not trusted."
 
 **Third (≈20%): incumbent obsolescence.** Microsoft/Palantir/exhaust-mining make
-interview-derived intelligence a commodity feature before Ontora's trust-and-data
+interview-derived intelligence a commodity feature before Groundwork's trust-and-data
 moat compounds, and distribution beats depth.
 
 *The kindest and most useful thing we can tell ourselves about this deal: the check

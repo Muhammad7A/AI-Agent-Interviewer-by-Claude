@@ -1,13 +1,13 @@
-# Ontora
+# Groundwork
 
 **Organizational intelligence from employee interviews, where every finding
 resolves to a verbatim quote — or it doesn't ship.**
 
-[![CI](https://github.com/Muhammad7A/AI-Agent-Interviewer-by-Claude/actions/workflows/ci.yml/badge.svg)](https://github.com/Muhammad7A/AI-Agent-Interviewer-by-Claude/actions/workflows/ci.yml)
+[![CI](https://github.com/Muhammad7A/groundwork/actions/workflows/ci.yml/badge.svg)](https://github.com/Muhammad7A/groundwork/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 
-Ontora conducts AI-driven interviews with employees, extracts what they
+Groundwork conducts AI-driven interviews with employees, extracts what they
 actually said about how work gets done, and produces a consultant-facing
 report in which **every claim carries a quote that provably exists in the
 transcript**. Claims that fail that test are dropped, not softened.
@@ -24,8 +24,8 @@ The engine has **zero third-party dependencies**. If you have Python 3.10+ you
 can run the entire pipeline right now — no install, no API key, no network.
 
 ```bash
-git clone https://github.com/Muhammad7A/AI-Agent-Interviewer-by-Claude.git
-cd AI-Agent-Interviewer-by-Claude/apps/ai-engine
+git clone https://github.com/Muhammad7A/groundwork.git
+cd groundwork/apps/ai-engine
 python3 -m ai_engine.cli --simulated --candor open
 ```
 
@@ -186,14 +186,14 @@ python3 -m ai_engine.employee   # employee surface      → http://127.0.0.1:810
 | Variable | Unset | Set |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | **mock mode** — scripted interviewer | live model |
-| `ONTORA_STORE_KEY` | testimony stored **in plaintext** | encrypted at rest |
-| `ONTORA_ENV` | `dev` — mocks and plaintext allowed | `production` — **refuses to start** without both of the above |
-| `ONTORA_MODEL` | `claude-sonnet-5` | your choice — checked at startup, see below |
-| `ONTORA_DATA_DIR` | `data/interviews` | storage location |
+| `GROUNDWORK_STORE_KEY` | testimony stored **in plaintext** | encrypted at rest |
+| `GROUNDWORK_ENV` | `dev` — mocks and plaintext allowed | `production` — **refuses to start** without both of the above |
+| `GROUNDWORK_MODEL` | `claude-sonnet-5` | your choice — checked at startup, see below |
+| `GROUNDWORK_DATA_DIR` | `data/interviews` | storage location |
 
 Install the matching extras with `pip install -e '.[live,secure,web]'`.
 
-`ONTORA_ENV=production` crashes at startup if either key is missing. That is
+`GROUNDWORK_ENV=production` crashes at startup if either key is missing. That is
 deliberate: a silent mock is indistinguishable from a working system until
 somebody reads a transcript that nobody ever said.
 

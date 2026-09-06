@@ -30,7 +30,7 @@ from pathlib import Path
 
 from .crypto import Cipher, NullCipher
 
-SCHEMA = "ontora.derived/v1"
+SCHEMA = "groundwork.derived/v1"
 _PLAIN = ".derived.json"
 _ENCRYPTED = ".derived.enc"
 

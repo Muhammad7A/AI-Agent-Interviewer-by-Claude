@@ -1,19 +1,19 @@
-# Ontora — Ruthless Competitive Moat Analysis
+# Groundwork — Ruthless Competitive Moat Analysis
 
-**The question is not "is Ontora impressive." It is "what can Ontora own that a
+**The question is not "is Groundwork impressive." It is "what can Groundwork own that a
 competitor cannot copy, rent, or bundle away."** Those are different questions, and
-almost everything that makes Ontora impressive fails the second one.
+almost everything that makes Groundwork impressive fails the second one.
 
 ---
 
 ## Verdict (read this first)
 
-Ontora has **no software moat, no model moat, and no data moat at MVP.** The
+Groundwork has **no software moat, no model moat, and no data moat at MVP.** The
 interview engine, the graph, the epistemology, and the architecture are all
 either copyable in weeks, rentable from a competitor, or invisible to the buyer.
 The core capability (LLM interview + synthesis) is a *primitive sold by the two
 companies most able to kill the category*, so every capability gain accrues to
-them, not to Ontora.
+them, not to Groundwork.
 
 If a durable moat exists, it lives in exactly one place: **the intersection of
 neutral trust, proven calibration, and a compounding validation dataset — three
@@ -22,7 +22,7 @@ invisible in a demo.** None of them exist yet. The moat is *earned*, not
 architected. A company that believes its architecture is its moat will be
 commoditized before it notices.
 
-The single most dangerous fact in this document: **a platform can make Ontora
+The single most dangerous fact in this document: **a platform can make Groundwork
 irrelevant without ever copying it** — by bundling a good-enough version into a
 channel employees already live in. The *only* structural defense against that is
 an asymmetry the platform's own position forbids it from matching: **being the
@@ -45,7 +45,7 @@ honest criticism of their own manager?*
 - Process-mining tools **see the logs** but structurally **cannot reach the
   *why*** — the human, political, unspoken layer.
 
-Ontora's entire defensibility is a bet that a **neutral, legally-firewalled,
+Groundwork's entire defensibility is a bet that a **neutral, legally-firewalled,
 calibrated third party** is a role none of the giants can occupy — the same
 structural reason ethics hotlines, engagement-survey vendors (Glint, Culture Amp),
 and whistleblower channels exist as third parties instead of Microsoft features.
@@ -61,14 +61,14 @@ Rated on present strength (now) and ceiling (if the company executes for years).
 
 | Rank | Moat | Now | Ceiling | Whose is it? | Verdict |
 |---|---|---|---|---|---|
-| 1 | **Trust / neutrality** | Weak | **Strong** | Ontora *if* it stays neutral; else the consultant | The real structural moat. An asymmetry of *willingness*, not capability. Platforms can copy the tech, won't want the liability. |
-| 2 | **Legal / privacy posture** | Weak | Strong | Ontora | Same asset as #1's other face. Expensive to retrofit, a buying requirement, a reason platforms stay out. |
-| 3 | **Evaluation harness** | Conditional | **Strong** | Ontora | The only *technical* moat. Turns demo→reliable. Invisible, unglamorous, expensive to copy. Exists **only if the eval is real**. |
-| 4 | **Learning loop / dataset compounding** | Absent | **Strong** | Ontora | The only moat that *widens with time* and a copycat structurally cannot have. Slow, unproven, threatened by decay + non-transfer. Only the **meta-layer** compounds. |
-| 5 | **Consultant judgment / workflow** | Medium | Medium | **The humans / incumbents** — not the software | Real value, but caps Ontora at *services multiples*, not SaaS. Not software-defensible. |
+| 1 | **Trust / neutrality** | Weak | **Strong** | Groundwork *if* it stays neutral; else the consultant | The real structural moat. An asymmetry of *willingness*, not capability. Platforms can copy the tech, won't want the liability. |
+| 2 | **Legal / privacy posture** | Weak | Strong | Groundwork | Same asset as #1's other face. Expensive to retrofit, a buying requirement, a reason platforms stay out. |
+| 3 | **Evaluation harness** | Conditional | **Strong** | Groundwork | The only *technical* moat. Turns demo→reliable. Invisible, unglamorous, expensive to copy. Exists **only if the eval is real**. |
+| 4 | **Learning loop / dataset compounding** | Absent | **Strong** | Groundwork | The only moat that *widens with time* and a copycat structurally cannot have. Slow, unproven, threatened by decay + non-transfer. Only the **meta-layer** compounds. |
+| 5 | **Consultant judgment / workflow** | Medium | Medium | **The humans / incumbents** — not the software | Real value, but caps Groundwork at *services multiples*, not SaaS. Not software-defensible. |
 | 6 | **Category definition** | Weak | Medium | Contested | Narrative mindshare. Double-edged: you fund the market education, a bigger player harvests it. Only a moat if backed by #1–4. |
-| 7 | **Switching cost** | ~Zero | Low–Med | Ontora | Output is a report; reports don't lock in. Future hope (longitudinal "org truth of record"), not a present moat. |
-| 8 | **Distribution** | **Zero** | Zero (alone) | Platforms & incumbents | Not a moat — the fatal *gap*. Must be borrowed via partnership. This is where Ontora dies. |
+| 7 | **Switching cost** | ~Zero | Low–Med | Groundwork | Output is a report; reports don't lock in. Future hope (longitudinal "org truth of record"), not a present moat. |
+| 8 | **Distribution** | **Zero** | Zero (alone) | Platforms & incumbents | Not a moat — the fatal *gap*. Must be borrowed via partnership. This is where Groundwork dies. |
 | — | Model moat | Zero | Zero | The labs | Rented from competitors. The opposite of a moat. |
 | — | Graph moat | Zero | Zero | Nobody | A copyable data structure. Invisible to buyer, no lock-in. |
 | — | Epistemic moat | ~Zero | Low | Nobody | Publishable ideas. Collapses into #3/#4 or is worth nothing. |
@@ -91,7 +91,7 @@ the bottom worth **zero**.
 | Knowledge graph / "six lenses" | **Yes** (schema, not secret) | Yes | Partially | No |
 | Organizational epistemology | Ideas: **yes**; a *working, calibrated* version: no | The ideas, yes | No | Only the *validated calibration*, not the theory |
 | DDD architecture | Irrelevant to copy — buyer never sees it | n/a | n/a | No |
-| Consultant workflow | The steps: yes; the *judgment*: no | The steps, yes | Incumbents already have better | The judgment — **but it's the human's, not Ontora's** |
+| Consultant workflow | The steps: yes; the *judgment*: no | The steps, yes | Incumbents already have better | The judgment — **but it's the human's, not Groundwork's** |
 | **Evaluation harness** | The *shell*: yes; a *real, labeled, calibrated* one: **no** | No | No | **Yes — if it's real** |
 | **Learning dataset (4-layer, validated)** | The schema: yes; the *accumulated validated labels*: **no** | No | No | **Yes — after many engagements** |
 | Trust / legal architecture | The docs: yes; the *earned reputation + willingness to own liability*: **no** | No | No | **Yes — and it compounds** |
@@ -102,9 +102,9 @@ whole thesis of this document.
 
 ---
 
-## 3. Competitor grid — how each attacks, and Ontora's line of survival
+## 3. Competitor grid — how each attacks, and Groundwork's line of survival
 
-| Archetype | How they attack | Can copy fast | Can bundle/commoditize | Probably can't copy fast | Ontora's survival line |
+| Archetype | How they attack | Can copy fast | Can bundle/commoditize | Probably can't copy fast | Groundwork's survival line |
 |---|---|---|---|---|---|
 | **OpenAI** | Commoditize the *capability* to zero as a primitive | The whole MVP | The core interview/synthesis | Neutral trust; validated eval | Non-model layers only |
 | **Anthropic** | Same — capability as primitive; won't build the vertical | The whole MVP | The core capability | Trust; eval; domain workflow | Not their business shape |
@@ -130,33 +130,33 @@ compounding validated data.**
 
 **Microsoft is the existential threat, and it kills without copying.** Microsoft
 owns the workflow employees already live in (Teams, Outlook, Graph) and the
-system-of-record data Ontora will never have. It can ship a "Viva/Copilot org
-insights" feature that is 70% as good, free, to 400M seats. Ontora cannot win a
+system-of-record data Groundwork will never have. It can ship a "Viva/Copilot org
+insights" feature that is 70% as good, free, to 400M seats. Groundwork cannot win a
 *breadth* or *distribution* fight — it will lose both, absolutely.
 
 **But Microsoft cannot credibly occupy the trust role**, and this is the entire
 game. Viva already carries "bossware" friction; Microsoft-as-employer's-platform
 is the last party an employee tells the truth about their manager to. Microsoft's
 *strength* (it is the employer's platform) is precisely what disqualifies it from
-the *candor* problem. **Ontora survives only by being the anti-Microsoft:** neutral,
+the *candor* problem. **Groundwork survives only by being the anti-Microsoft:** neutral,
 employee-trusted, legally firewalled, deliberately *not* the system of record.
-If Ontora competes on data or distribution, it is dead. If it competes on trust
+If Groundwork competes on data or distribution, it is dead. If it competes on trust
 and elicitation depth, it has a lane Microsoft structurally cannot enter.
 
-**OpenAI / Anthropic do not kill Ontora by building it** — the vertical is a
+**OpenAI / Anthropic do not kill Groundwork by building it** — the vertical is a
 rounding error to them, brand-toxic, and the wrong business shape. They kill it a
 different way: by **driving the core capability to zero**, so any copycat can build
 the MVP trivially and the model/architecture "moat" evaporates. Their attack is
 *dissolution*, not competition. The correct response is to **stop pretending the
 model or architecture is a moat** and move all defensibility to the layers the
 labs will never own: trust, calibration proof, and the validated dataset. The labs
-are Ontora's *suppliers and its acid bath* — never its moat.
+are Groundwork's *suppliers and its acid bath* — never its moat.
 
 ---
 
 ## 5. Consulting-incumbent-kill analysis — McKinsey / Deloitte
 
-The incumbents own the three things Ontora most lacks: **the buyer relationship,
+The incumbents own the three things Groundwork most lacks: **the buyer relationship,
 the C-suite trust, and the delivery muscle.** They are already building internal
 GenAI assessment tools. They can bundle "AI-accelerated discovery" into an existing
 engagement as a *free* loss-leader, because they make their money on the downstream
@@ -173,10 +173,10 @@ There are only two honest survival paths, and they point in opposite directions:
    diagnosis for the **mid-market the incumbents ignore.** More defensible
    positioning (neutrality + price), far harder distribution.
 
-**The uncomfortable truth:** the incumbents are simultaneously Ontora's biggest
+**The uncomfortable truth:** the incumbents are simultaneously Groundwork's biggest
 threat, most realistic channel, and most likely acquirer. The software moat
 against them is thin. If the moat turns out to be *operational judgment*, then
-**Ontora is a consulting firm with a tool** — and will be valued on services
+**Groundwork is a consulting firm with a tool** — and will be valued on services
 multiples, not SaaS multiples. That is a founder decision to make *deliberately*,
 not a fate to drift into.
 
@@ -185,17 +185,17 @@ not a fate to drift into.
 ## 6. Process-intelligence-kill analysis — Celonis / Palantir
 
 **Celonis mines digital exhaust** — objective system logs — which is the exact
-*complement* to Ontora's human testimony. Its attack is: *"we already see how your
+*complement* to Groundwork's human testimony. Its attack is: *"we already see how your
 processes really run; you don't need to ask people."* For the narrow
 process-discovery use case, that is a genuine bundle threat. **But logs show *what*
 happens, never *why*:** not the political cause, not the unspoken workaround, not
 the pain, not the Tier 3–4 human truth. Celonis cannot interview a resentful
-middle manager. Ontora owns the **human/why layer that digital exhaust structurally
+middle manager. Groundwork owns the **human/why layer that digital exhaust structurally
 cannot reach.**
 
 The real danger from this quadrant is not being beaten — it is being **squeezed
 into a thin middle**: process reality owned by Celonis (logs), the reasoning owned
-by the labs (models), leaving Ontora a narrow strip of "human elicitation." The
+by the labs (models), leaving Groundwork a narrow strip of "human elicitation." The
 defense is to make that strip *deep and trusted* enough to be a category, and to
 **complement rather than compete** — plug the human/why layer into process mining,
 or be acquired by someone who has the logs but not the testimony.
@@ -203,7 +203,7 @@ or be acquired by someone who has the logs but not the testimony.
 **Palantir** is heavyweight, expensive, integration-first, and not employee-trust-
 oriented. It is a threat only in large, complex accounts, and even there its
 posture (deep operational surveillance) is the *opposite* of the trust position
-Ontora needs. Low direct threat; possible acquirer.
+Groundwork needs. Low direct threat; possible acquirer.
 
 ---
 
@@ -217,7 +217,7 @@ that only exist after many validated engagements and are invisible in any demo:
    *to employees*. This is an asymmetry of position, not of technology, which is
    exactly why it is hard to copy: a competitor would have to *give up being the
    platform / being the employer's consultant* to match it.
-2. **Proven calibration** — a real evaluation harness that lets Ontora *know and
+2. **Proven calibration** — a real evaluation harness that lets Groundwork *know and
    prove* its output is true, not merely fluent. This is what survives the
    commoditization of the model, and what a copycat with cloned prompts cannot
    reproduce, because they have no labeled ground truth.
@@ -254,7 +254,7 @@ code, not model quality, not graph completeness.
 
 ## 9. Moats that exist ONLY IF the evaluation harness is real
 
-If the eval is vibes, **every one of these evaporates and Ontora is a prompt
+If the eval is vibes, **every one of these evaporates and Groundwork is a prompt
 wrapper:**
 
 - **Calibration / trust-in-output** — the ability to say "this finding is true"
@@ -268,7 +268,7 @@ wrapper:**
   signal; without it the dataset accumulates noise, not skill.
 
 The evaluation harness is not a feature. It is the **precondition for every
-technical moat Ontora could have.** Underinvest here and there is no defensible
+technical moat Groundwork could have.** Underinvest here and there is no defensible
 company.
 
 ---
@@ -333,13 +333,13 @@ a positioning, and positioning attracts entrants.** What is defensible is a
 *specific trusted operator within it* who has accumulated trust + eval + validated
 data. The category is the bait; the operator is the moat.
 
-Can a large platform make Ontora irrelevant without copying it? **Yes — Microsoft
+Can a large platform make Groundwork irrelevant without copying it? **Yes — Microsoft
 can, by bundling good-enough insight into the workflow employees already live in.**
 The only structural defense is the trust/neutrality asymmetry the platform cannot
 match.
 
 Does the moat come from software or operational judgment? **Today, overwhelmingly
-operational judgment — which means Ontora is currently a consulting firm with a
+operational judgment — which means Groundwork is currently a consulting firm with a
 tool, and will be valued as one.** The transition to a software-defensible company
 happens *only* if the eval harness and the validation dataset become real and
 compound. Until they do, every claim of a "software moat" is comfort, and this
@@ -347,7 +347,7 @@ document exists to remove comfort.
 
 ---
 
-*Bottom line: Ontora's moat is not built, it is earned — one validated, trusted,
+*Bottom line: Groundwork's moat is not built, it is earned — one validated, trusted,
 well-measured engagement at a time. There are exactly three things worth defending
 (neutral trust, real evaluation, compounding validated data), they are all slow,
 none exist at MVP, and everything else that feels like a moat is either rented from

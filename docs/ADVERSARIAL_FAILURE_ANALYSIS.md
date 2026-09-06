@@ -1,4 +1,4 @@
-# Ontora — Adversarial Failure Analysis
+# Groundwork — Adversarial Failure Analysis
 
 > Every meaningful way this company, product, system, and research program can die.
 > Reasoned from the whole repository as one object. Not theoretical failures, not
@@ -11,7 +11,7 @@
 
 Before the list, two shapes that recur everywhere:
 
-- **Conjunctive success.** Ontora's value requires a long chain of *independent*
+- **Conjunctive success.** Groundwork's value requires a long chain of *independent*
   things to all be true: employees are candid → the interview elicits truth →
   extraction doesn't confabulate → findings are *decision-useful*, not merely true →
   consultants validate without rubber-stamping → executives act → outcomes are good →
@@ -164,7 +164,7 @@ structural + research
 - *Cheapest detection:* Decision-impact tracking on 3 real engagements — did one decision
   change?
 - *Mitigation:* Evidence drill-down, N-of-M, the honesty box, and the *consultant's*
-  personal credibility carrying it. Ontora as the notebook, the consultant as the face.
+  personal credibility carrying it. Groundwork as the notebook, the consultant as the face.
 
 **F8 · Leading-question confirmation (the engine manufactures its findings).** — SEVERE
 · engineering
@@ -231,7 +231,7 @@ structural + research
 - *Why it matters:* The interview becomes an expensive, high-friction workaround for
   missing data pipes — and Microsoft has the pipes *and* the distribution.
 - *Manifests as:* A well-funded incumbent ships a "good enough" org-intelligence feature
-  bundled at ~$0; Ontora's wedge evaporates.
+  bundled at ~$0; Groundwork's wedge evaporates.
 - *Hard to notice early because:* It's a *future* shift; today interviews clearly capture
   tacit knowledge exhaust doesn't. You feel safe right up until you're not.
 - *Cheapest detection:* Run the interview *and* a light exhaust analysis on the same org;
@@ -476,7 +476,7 @@ deleting speculative *what*.
 ## 9. Red-team memo — the true existential risks
 
 Five reviews and one failure analysis now converge on the same small set. Stripped to
-the bone, Ontora dies from one of **four** things, and only four:
+the bone, Groundwork dies from one of **four** things, and only four:
 
 1. **Candor (F1).** If a corporate-procured AI can't get employees to tell the truth,
    there is no data, no product, no company. *Structural + research. Testable in 30 days.

@@ -1,4 +1,4 @@
-# Contributing to Ontora
+# Contributing to Groundwork
 
 Thanks for looking. This document covers how to get the code running, what CI
 enforces, and the few rules that are not negotiable.
@@ -8,8 +8,8 @@ enforces, and the few rules that are not negotiable.
 You need **Python 3.10 or newer**. Nothing else.
 
 ```bash
-git clone https://github.com/Muhammad7A/AI-Agent-Interviewer-by-Claude.git
-cd AI-Agent-Interviewer-by-Claude/apps/ai-engine
+git clone https://github.com/Muhammad7A/groundwork.git
+cd groundwork/apps/ai-engine
 python3 -m unittest discover -s tests
 ```
 

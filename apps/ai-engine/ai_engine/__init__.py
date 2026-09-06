@@ -1,4 +1,4 @@
-"""Ontora AI cognition — runnable interview loop (thin slice).
+"""Groundwork AI cognition — runnable interview loop (thin slice).
 
 This package is the deliberately-thin, runnable implementation of the interview
 cognition capability. It exists to run the Year-0/1 gate experiments (candor,

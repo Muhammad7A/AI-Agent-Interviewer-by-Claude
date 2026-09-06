@@ -1,7 +1,7 @@
 # Evaluation Harness — Interview Intelligence Engine
 
 > The measurement framework that decides whether the engine is actually good. Built
-> to answer one question — *can Ontora consistently extract useful, truthful,
+> to answer one question — *can Groundwork consistently extract useful, truthful,
 > specific, decision-relevant organizational insight from real employees faster than
 > a human consultant or a naive AI interview?* — and built, above all, to be
 > **un-gameable by verbosity, polish, or confident nonsense.** If the benchmark can
@@ -128,7 +128,7 @@ held-out set never used for tuning).
 
 **T2 — Consultant-adjudicated.** Real or realistic transcripts scored by **≥2 senior
 consultants, blind** to which system produced them, each producing a reference finding
-set + ratings. Report inter-rater agreement (§17); Ontora is scored against the
+set + ratings. Report inter-rater agreement (§17); Groundwork is scored against the
 *consensus* and bounded by the *inter-rater band*. The consultant is a strong but
 **fallible** reference (per the epistemology) — never treated as an oracle.
 
@@ -218,7 +218,7 @@ do not average around it.
 
 ## 9. Comparison against baselines
 
-Run identical scenarios through B0–B3 and Ontora; report the **delta and the cost**:
+Run identical scenarios through B0–B3 and Groundwork; report the **delta and the cost**:
 
 | | Value Density | Candor Yield | Decision-useful findings | FP rate | Consultant hours | $ cost |
 |---|---|---|---|---|---|---|
@@ -226,7 +226,7 @@ Run identical scenarios through B0–B3 and Ontora; report the **delta and the c
 | **B1 naive LLM** | **the bar to beat** | low–med | med, higher FP | **higher** | ~0 | low |
 | B2 junior consultant | — | med | med | med | high | high |
 | B3 senior consultant | ceiling | high | high | low | highest | highest |
-| **Ontora** | must beat B1, approach B3 | must beat B1 | must ≥ B2 | must ≤ B1 | low | low |
+| **Groundwork** | must beat B1, approach B3 | must beat B1 | must ≥ B2 | must ≤ B1 | low | low |
 
 The product claim is **quality-per-hour-per-dollar**, so a quality tie with B2 at 5%
 of the cost/time is a *win*; a quality win over B1 that costs 10× the tokens for +2%
@@ -342,7 +342,7 @@ reference, and watch for FP creep when consultant-pleasing rises.
   against confident nonsense.
 - **Inter-rater:** ≥2 consultants, blind; report Cohen's κ / Krippendorff's α on binary
   judgments and correlation on ratings. If humans don't agree, the human ceiling is low
-  and *that* is the headline — Ontora is scored against consensus and can't be asked to
+  and *that* is the headline — Groundwork is scored against consensus and can't be asked to
   beat human noise.
 
 ---

@@ -74,7 +74,7 @@ ratio with a known denominator.
 ```bash
 pip install -e '.[live]'
 export ANTHROPIC_API_KEY=sk-...
-export ONTORA_MODEL=claude-sonnet-5      # optional; this is also the default
+export GROUNDWORK_MODEL=claude-sonnet-5      # optional; this is also the default
 python3 -m ai_engine.cli --simulated     # interviewer AND persona now use the model
 ```
 
@@ -170,7 +170,7 @@ extraction output contains verbatim claim statements — an unencrypted cache wo
 quietly reintroduce the plaintext leak the event logs just had. Failures are never
 cached, so a transient outage cannot become a permanently empty answer, and a corrupt
 entry is treated as a miss: the cache is an optimisation and must never be able to
-break the pipeline. Set `ONTORA_CACHE=0` to measure what an uncached run really costs.
+break the pipeline. Set `GROUNDWORK_CACHE=0` to measure what an uncached run really costs.
 
 ### The consultant workspace (web app)
 
@@ -251,15 +251,15 @@ storage key that isn't set and verbatim attributable testimony lands on disk in
 plaintext. Both are right for local work and unacceptable in production:
 
 ```bash
-ONTORA_ENV=production python3 -m ai_engine.cli     # refuses, listing every problem
+GROUNDWORK_ENV=production python3 -m ai_engine.cli     # refuses, listing every problem
 ```
 ```
-ConfigurationError: ONTORA_ENV=production, but this configuration is not safe to
+ConfigurationError: GROUNDWORK_ENV=production, but this configuration is not safe to
 serve real interviews:
   - no ANTHROPIC_API_KEY: cognition would silently fall back to the scripted mock
     interviewer, serving fabricated interviews to real people and recording them
     as genuine testimony
-  - no ONTORA_STORE_KEY: verbatim, attributable employee testimony would be
+  - no GROUNDWORK_STORE_KEY: verbatim, attributable employee testimony would be
     written to disk in plaintext
 ```
 

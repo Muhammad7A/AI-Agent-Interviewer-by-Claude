@@ -55,7 +55,7 @@ def run_demo_engagement(
     # in-memory state, and pre-issuing keeps parallelism from racing it.
     assignments = [(persona, service.pseudonymizer.pseudonym(persona.name))
                    for persona in personas]
-    service.pseudonymizer.save_state(settings.data_dir)
+    service.pseudonymizer.save_state(settings.data_dir, settings.cipher())
 
     def interview_one(item) -> dict:
         persona, alias = item

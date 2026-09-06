@@ -44,6 +44,15 @@ class ParticipantFinding:
     # How exactly the quote matched the source ("exact" | "normalized" | "flexible").
     # Carried through because interpretive distance is a confidence signal.
     match_kind: str = "exact"
+    #: The team, department or reporting line this person sits in, when known.
+    #:
+    #: Confidence treats agreement as independent evidence, and in an organization
+    #: it frequently is not: five people on one team saying "the approval takes
+    #: three days" is most likely one fact that circulated through a team, not five
+    #: observations. Where the cohort is known the scorer discounts agreement inside
+    #: it; where it is ``None`` the scorer caps the corroboration term instead,
+    #: because unmodeled correlation is a reason to claim less, not more.
+    cohort: str | None = None
 
 
 def participant_finding_from_claim(

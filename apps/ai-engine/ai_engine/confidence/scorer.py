@@ -38,6 +38,58 @@ MATCH_BONUS = {"exact": 0.10, "normalized": 0.0, "flexible": -0.15}
 CONFLICT_W = 1.60
 
 
+# Each additional voice from a cohort already represented counts for this much of a
+# fresh one. Two people on the same team who talk daily are not two independent
+# observations of their team's process; they are closer to one and a bit.
+SAME_COHORT_WEIGHT = 0.35
+
+# The ceiling on effective voices when no cohort is known at all. Without structure
+# there is no way to tell five independent departments from one talkative team, and
+# the honest response to unmodeled correlation is to stop paying for scale: beyond
+# this, extra agreement adds nothing to the score. Chosen to sit above the
+# corroboration a small engagement can genuinely produce and below the point where
+# log() would keep rewarding a single echo chamber.
+UNKNOWN_COHORT_CAP = 4.0
+
+
+def _effective_voices(finding, index: int, agreeing_ix) -> tuple[float, str]:
+    """How many *independent* voices back this member, and why that number.
+
+    Agreement was previously counted at face value: ``1 + len(agreeing)`` fed
+    straight into ``log()``, so five people on one team scored exactly like five
+    people in five departments. In organizational testimony that is the common
+    case rather than the edge case — people attend the same meetings and repeat the
+    same received wisdom — and it inflated confidence precisely where a consultant
+    most needs it not to be inflated.
+
+    Two regimes, because there are two honest answers:
+
+    * **Cohorts known** — the first voice from each cohort counts fully, each
+      further voice from a cohort already seen counts :data:`SAME_COHORT_WEIGHT`.
+    * **Cohorts unknown** — no discount can be computed, so the total is capped at
+      :data:`UNKNOWN_COHORT_CAP`. Unmodeled correlation argues for claiming less.
+    """
+    members = [finding.members[k] for k in agreeing_ix]
+    if not any(m.participant_id == finding.members[index].participant_id for m in members):
+        members = [finding.members[index]] + members
+
+    if all(m.cohort is None for m in members):
+        return min(float(len(members)), UNKNOWN_COHORT_CAP), (
+            "cohorts unknown, so capped" if len(members) > UNKNOWN_COHORT_CAP
+            else "cohorts unknown")
+
+    seen: set[str] = set()
+    total = 0.0
+    for m in members:
+        # An unknown cohort is treated as its own — it cannot be shown to be
+        # correlated with anything, and assuming correlation would understate a
+        # genuine outside voice.
+        key = m.cohort if m.cohort is not None else f"~unknown:{m.participant_id}"
+        total += 1.0 if key not in seen else SAME_COHORT_WEIGHT
+        seen.add(key)
+    return total, f"{len(seen)} distinct cohort(s)"
+
+
 def _logit(p: float) -> float:
     return math.log(p / (1.0 - p))
 
@@ -60,15 +112,18 @@ def score_member(finding: AggregatedFinding, index: int) -> ConfidenceScore:
         SignalContribution("prior", f"passed grounding + entailment (p={PRIOR_P})", PRIOR_LOGIT)
     ]
 
-    # 1. Independent corroboration: this member plus everyone who AGREES with them.
-    agreeing = {finding.members[k].participant_id for k in finding.agreeing_with(index)}
+    # 1. Corroboration: this member plus everyone who AGREES with them — discounted
+    #    for the fact that agreement inside an organization is rarely independent.
+    agreeing_ix = finding.agreeing_with(index)
+    agreeing = {finding.members[k].participant_id for k in agreeing_ix}
     agreeing.discard(member.participant_id)
-    effective = 1 + len(agreeing)
+    effective, basis = _effective_voices(finding, index, agreeing_ix)
     corr_delta = CORROBORATION_W * math.log(effective)
     contributions.append(SignalContribution(
         "corroboration",
-        f"{effective} independent participant(s) assert this"
-        + (f" ({', '.join(sorted(agreeing))} agree)" if agreeing else " (single source)"),
+        f"{effective:.2f} effective voice(s) assert this"
+        + (f" ({', '.join(sorted(agreeing))} agree; {basis})" if agreeing
+           else " (single source)"),
         corr_delta,
     ))
 

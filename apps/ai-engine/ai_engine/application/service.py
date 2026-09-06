@@ -76,8 +76,13 @@ class ConsultantService:
     def __init__(self, settings: Settings,
                  pseudonymizer: Pseudonymizer | None = None) -> None:
         self.settings = settings
+        # The identity mapping goes through the same cipher as every other store.
+        # It maps real names to pseudonyms, so it is the one artifact that converts
+        # the whole pseudonymous corpus back to named employees — it was the only
+        # store exempt from the at-rest rule, and in production it now refuses to
+        # be written in plaintext like the rest.
         self.pseudonymizer = pseudonymizer or Pseudonymizer.load_or_create(
-            settings.data_dir)
+            settings.data_dir, settings.cipher())
         self._live: dict[str, LiveInterview] = {}
 
     # -- posture ------------------------------------------------------------
@@ -129,7 +134,7 @@ class ConsultantService:
     def invite(self, participant: str) -> str:
         """Pseudonymize at ingest and create an invitation for the employee surface."""
         alias = self.pseudonymizer.pseudonym(participant.strip() or "unknown")
-        self.pseudonymizer.save_state(self.settings.data_dir)
+        self.pseudonymizer.save_state(self.settings.data_dir, self.settings.cipher())
         return InvitationStore(self.settings.data_dir).create(pseudonym=alias).token
 
     def list_invitations(self) -> list:
@@ -159,7 +164,7 @@ class ConsultantService:
         """
         EngagementStore(self.settings.data_dir).ensure(engagement_id)
         alias = self.pseudonymizer.pseudonym(participant.strip() or "unknown")
-        self.pseudonymizer.save_state(self.settings.data_dir)
+        self.pseudonymizer.save_state(self.settings.data_dir, self.settings.cipher())
         transcript = Transcript(engagement_id=engagement_id, tenant_id="tenant-local")
         transcript.interview_id = alias
 

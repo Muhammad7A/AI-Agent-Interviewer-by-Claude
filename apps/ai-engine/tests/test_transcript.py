@@ -30,7 +30,9 @@ class TranscriptTest(unittest.TestCase):
         seg = t.append(Speaker.SUBJECT, "I keep a private spreadsheet because the dashboard is unusable.")
         # Resolve the span for "private spreadsheet".
         start = seg.text.index("private spreadsheet")
-        ref = EvidenceRef(segment_id=seg.id, start=start, end=start + len("private spreadsheet"))
+        ref = EvidenceRef(segment_id=seg.id, start=start,
+                          end=start + len("private spreadsheet"),
+                          transcript_id=t.id)
         self.assertEqual(ref.resolve(t), "private spreadsheet")
 
     def test_out_of_bounds_span_raises(self):

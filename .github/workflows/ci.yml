@@ -45,18 +45,30 @@ jobs:
       # skipTest when cryptography *is* importable. Those are expected.
       # Any higher skip count means a real optional-dependency gap (e.g.
       # webapp tests still skipped) and must fail the build.
+      # Checked by REASON, not by count. A bare "at most 2" passes just as happily
+      # when one intentional skip starts running and an unrelated test starts
+      # skipping in its place — the count is unchanged and the gap is invisible,
+      # which is the same "green checkmark that never ran" this suite already had
+      # to fix once in the fuzz properties.
       - name: Assert only intentional skips remain
         run: |
-          python -m unittest discover -s tests 2>&1 | tee /tmp/out.txt
-          # Extract the skip count from the final summary line
+          python -m unittest discover -s tests -v 2>&1 | tee /tmp/out.txt
           SKIPPED=$(grep -oE 'skipped=[0-9]+' /tmp/out.txt | tail -1 | cut -d= -f2 || echo 0)
-          # Allow the known pair of intentional cryptography-absent skips
-          if [ "${SKIPPED:-0}" -gt 2 ]; then
-            echo "::error::unexpected tests were skipped in CI (got ${SKIPPED}, expected at most 2 intentional)"
-            grep -E 'skipped|SKIP' /tmp/out.txt || true
+          # The only sanctioned reasons, both from test_persistence.py: they assert
+          # the behaviour when `cryptography` is absent, so they cannot run in CI,
+          # where it is installed on purpose.
+          UNEXPECTED=$(grep -oE "skipped '[^']*'" /tmp/out.txt \
+            | grep -vc "cryptography is importable" || true)
+          if [ "${UNEXPECTED:-0}" -ne 0 ]; then
+            echo "::error::a test was skipped for an unsanctioned reason"
+            grep -oE "skipped '[^']*'" /tmp/out.txt | grep -v "cryptography is importable"
             exit 1
           fi
-          echo "OK: skip count=${SKIPPED} (at most 2 intentional cryptography-absent skips allowed)"
+          if [ "${SKIPPED:-0}" -gt 2 ]; then
+            echo "::error::more cryptography-absent skips than the known two (got ${SKIPPED})"
+            exit 1
+          fi
+          echo "OK: ${SKIPPED} skip(s), all for the sanctioned cryptography-absent reason"
 
       # Exits non-zero if any safety or capability gate fails.
       - name: Run evaluation gate

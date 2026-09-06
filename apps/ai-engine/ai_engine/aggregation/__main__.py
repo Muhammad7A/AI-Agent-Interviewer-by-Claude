@@ -89,7 +89,8 @@ def main(argv: list[str] | None = None) -> int:
         from ..privacy.identity import restricted_dir
 
         key_path = pseudonymizer.write_key(
-            restricted_dir(settings.data_dir) / "identity-key.RESTRICTED.json")
+            restricted_dir(settings.data_dir) / "identity-key.RESTRICTED.json",
+            cipher)
         print(f"Wrote {key_path}  (RESTRICTED — consultant only)")
     return 0
 

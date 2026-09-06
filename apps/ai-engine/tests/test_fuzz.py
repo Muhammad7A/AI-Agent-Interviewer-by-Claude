@@ -97,7 +97,8 @@ class SafetyGateAuditTest(unittest.TestCase):
                 id="clm-bad", claim_type=ClaimType.OBSERVATION,
                 statement=proposal.statement,
                 evidence=(GroundedEvidence(
-                    EvidenceRef(segment.id, 0, len(segment.text)), proposal.quote, "exact"),),
+                    EvidenceRef(segment.id, 0, len(segment.text), transcript.id),
+                    proposal.quote, "exact"),),
                 speaker=Speaker.SUBJECT, tier=2)
             return claim, "grounded"
 

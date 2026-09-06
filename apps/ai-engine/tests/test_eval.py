@@ -81,7 +81,7 @@ class ScoreCaseTest(unittest.TestCase):
         seg = t.append(Speaker.SUBJECT, truth.statement)
         t.finalize()
         claim = Claim(id="clm-1", claim_type=ClaimType.WORKAROUND, statement="spreadsheet",
-                      evidence=(GroundedEvidence(EvidenceRef(seg.id, 0, len(seg.text)),
+                      evidence=(GroundedEvidence(EvidenceRef(seg.id, 0, len(seg.text), t.id),
                                                  seg.text, "exact"),),
                       speaker=Speaker.SUBJECT, tier=2)
         m = score_case(persona="ops", candor="open", is_ceiling=True,

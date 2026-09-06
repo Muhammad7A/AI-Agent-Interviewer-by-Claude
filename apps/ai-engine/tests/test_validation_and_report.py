@@ -104,7 +104,7 @@ class AutoValidatorTest(unittest.TestCase):
         from ai_engine.evidence.model import Claim, GroundedEvidence
         claim = Claim(id="clm-1", claim_type=ClaimType.WASTED_EFFORT,
                       statement="[wasted_effort] I rebuild the report by hand every week.",
-                      evidence=(GroundedEvidence(EvidenceRef(seg.id, 0, len(seg.text)),
+                      evidence=(GroundedEvidence(EvidenceRef(seg.id, 0, len(seg.text), t.id),
                                                  seg.text, "exact"),),
                       speaker=Speaker.SUBJECT, tier=2)
         verdict, _, correction = AutoValidator().decide(claim)

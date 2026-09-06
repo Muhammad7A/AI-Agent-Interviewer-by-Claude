@@ -172,6 +172,27 @@ class ReleaseGateTest(unittest.TestCase):
         pkg = release(agg, policy=ReleasePolicy.for_employer(k_anonymity=2))
         self.assertNotIn(s1, pkg.topics[0].label)
 
+    def test_label_vocabulary_is_shared_by_participants_not_by_the_tagger(self):
+        # Found adversarially: the mock tagger prefixes statements with
+        # "[claim_type] ", and counting that tag as vocabulary put a word on the
+        # employer's label that exactly one participant ever said. The tag is
+        # formatting, not testimony; the shared list must come from the members'
+        # actual words, tied-break deterministically.
+        agg = self._agg([
+            _pf("P-1", "[friction] the nightly batch runs on zzyzx quota tracker"),
+            _pf("P-2", "[friction] the nightly batch runs through a queue"),
+        ])
+        # k=2 so the two-voice topic is RELEASED and its label rendered — the
+        # label content is what this test pins.
+        pkg = release(agg, policy=ReleasePolicy.for_employer(k_anonymity=2))
+        label = pkg.topics[0].label
+        self.assertTrue(label.startswith("friction: "), label)
+        self.assertNotIn("zzyzx", label)
+        self.assertNotIn("tracker", label)
+        # 'runs' is genuinely said by both; ties (all count 2) break
+        # alphabetically, so the label is stable across processes.
+        self.assertEqual(label, "friction: batch, nightly, runs")
+
     def test_contested_sides_are_withheld_from_the_employer(self):
         agg = self._agg([
             _pf("P-1", "We always follow the official written procedure exactly as intended.", tier=1),

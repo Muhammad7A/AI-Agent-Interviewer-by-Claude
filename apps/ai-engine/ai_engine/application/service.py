@@ -415,6 +415,11 @@ class ConsultantService:
                     findings.append(participant_finding_from_claim(
                         f.claim, transcript,
                         participant_id=alias, participant_name=alias))
+        # Transcript ids are random, so list order is random per run — and the
+        # aggregation renders members in findings order. Sorting here makes the
+        # rendered documents byte-stable between two demo runs (the
+        # "deterministic pitch" promise survives a page diff).
+        findings.sort(key=lambda f: (f.participant_id, f.statement))
         return findings
 
     def engagement_synthesis_markdown(self, engagement_id: str) -> str:

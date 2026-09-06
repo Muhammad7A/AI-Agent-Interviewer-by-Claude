@@ -92,21 +92,35 @@ def _neutral_label(finding: AggregatedFinding) -> str:
     verbatim words — so it cannot be used outside the firewall. Terms used by two or
     more participants are, by construction, not unique to anyone, which makes them
     safe to name while still identifying the subject.
+
+    Two traps this function has already fallen into, both found adversarially:
+
+      * The tagger prefixes statements with ``"[claim_type] "``. That is
+        formatting, not testimony — but counted naively it tops the shared list
+        for every cluster, putting a word in the employer's document that may
+        have been spoken by exactly one participant (or nobody). Stripped here.
+      * Words are counted per distinct member, and label ties are broken
+        alphabetically, so the label is stable across processes (a
+        ``Counter.most_common`` tie follows hash-seeded set order otherwise).
     """
+    import re
     from collections import Counter
 
     from ..aggregation.relation import content_words
 
     counts: Counter[str] = Counter()
     for member in finding.members:
-        for word in content_words(member.statement):
+        text = re.sub(r"^\s*\[[a-z_ ]+\]\s*", "", member.statement, flags=re.I)
+        for word in set(content_words(text)):
             counts[word] += 1
     # Vocabulary is only "shared" if two or more participants used it. With a single
     # member, the longest member statement IS one person's sentence — the exact leak
     # this label exists to prevent — so a one-person finding gets no vocabulary.
     shared: list[str] = []
     if len(finding.members) > 1:
-        shared = [w for w, c in counts.most_common() if c >= 2][:5]
+        shared = [w for w, c in
+                  sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+                  if c >= 2][:5]
     kind = finding.claim_type.replace("_", " ")
     if not shared:
         return f"{kind} (specifics withheld)"

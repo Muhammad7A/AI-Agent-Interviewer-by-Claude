@@ -16,7 +16,7 @@ from .runner import run_fuzz
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ontora safety-gate fuzz audit")
+    parser = argparse.ArgumentParser(description="Groundwork safety-gate fuzz audit")
     parser.add_argument("--cases", type=int, default=400, help="quote spans to mutate")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--org-size", type=int, default=6, help="interviews in the corpus")

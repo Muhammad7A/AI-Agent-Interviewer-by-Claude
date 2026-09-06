@@ -52,6 +52,13 @@ th { color:var(--muted); font-weight:600; font-size:12px; text-transform:upperca
 .note { border-left:3px solid var(--warn); padding:8px 12px; color:var(--muted);
         font-size:13px; margin:12px 0; }
 .turn { margin:0 0 14px; } .q { font-weight:600; } .a { color:var(--muted); }
+.seg { padding:6px 10px; border-left:3px solid transparent; border-radius:6px; }
+.seg .who { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; }
+.seg:target { border-left-color:var(--accent); background:var(--card); outline:1px solid var(--accent); }
+.grounded { border-left:3px solid var(--good); padding:8px 12px; margin:12px 0;
+        font-size:13px; color:var(--muted); background:var(--bg); border-radius:0 6px 6px 0; }
+.grounded strong { color:var(--good); }
+.evi { font-size:12px; font-weight:600; text-decoration:none; }
 pre { white-space:pre-wrap; font:13px ui-monospace,Menlo,monospace; }
 """
 
@@ -60,13 +67,15 @@ def esc(value) -> str:
     return escape(str(value), quote=True)
 
 
-def layout(title: str, body: str, *, posture: str = "", warn: bool = False) -> str:
+def layout(title: str, body: str, *, posture: str = "", warn: bool = False,
+           head_extra: str = "") -> str:
     flag = ' <span class="flag">⚠ not a real interview / not protected at rest</span>' if warn else ""
     bar = f'<div class="posture">{esc(posture)}{flag}</div>' if posture else ""
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
         '<meta name=viewport content="width=device-width,initial-scale=1">'
-        f"<title>{esc(title)} · Ontora</title><style>{CSS}</style></head><body>"
+        f"{head_extra}"
+        f"<title>{esc(title)} · Groundwork</title><style>{CSS}</style></head><body>"
         f"{bar}<main>{body}</main></body></html>"
     )
 
@@ -101,6 +110,14 @@ def invitations(*, items: list[dict], posture: str, warn: bool) -> str:
                  placeholder="name or code (kept on this side only)" required></label>
           <button class="primary" type="submit">Create invitation</button>
         </form>
+        <form method="post" action="/invitations/batch" style="margin-top:10px">
+          <label>Or paste a roster — one participant per line
+            <textarea name="names" rows="3"
+                      placeholder="Ana&#10;Bo&#10;Citra"></textarea></label>
+          <div style="margin-top:8px">
+            <button class="primary" type="submit">Create batch</button>
+          </div>
+        </form>
         """
         + '<div class="note">Send the link path to the participant on the interview '
           "surface host (run it with <code>python -m ai_engine.employee</code>, default "
@@ -123,7 +140,8 @@ def _nav(current: str = "") -> str:
 
 # --- dashboard -------------------------------------------------------------
 
-def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: bool) -> str:
+def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: bool,
+              engagements: list[dict] | None = None) -> str:
     rows = ""
     for item in interviews:
         pending = item["claims"] - item["validated"]
@@ -131,6 +149,7 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
             "<tr>"
             f'<td><a href="/transcripts/{esc(item["id"])}/review">{esc(item["id"])}</a></td>'
             f'<td>{esc(item["participant"])}</td>'
+            f'<td>{esc(item.get("engagement", "—"))}</td>'
             f'<td>{item["segments"]}</td>'
             f'<td>{item["claims"]}</td>'
             f'<td>{"—" if not pending else f"<strong>{pending}</strong>"}</td>'
@@ -139,7 +158,8 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
             "</tr>"
         )
     table = (
-        "<table><tr><th>Interview</th><th>Participant</th><th>Segments</th>"
+        "<table><tr><th>Interview</th><th>Participant</th><th>Engagement</th>"
+        "<th>Segments</th>"
         f"<th>Claims</th><th>To review</th><th></th></tr>{rows}</table>"
         if rows else '<p class="sub">No stored interviews yet.</p>'
     )
@@ -152,12 +172,27 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
         )
         live_html = f"<h2>In progress</h2><ul>{items}</ul>"
 
+    engagements_html = ""
+    if engagements:
+        e_rows = "".join(
+            f"<tr><td>{esc(e['name'])}</td><td>{e['interviews']}</td>"
+            f'<td class="meta">{esc(e["id"])}</td></tr>'
+            for e in engagements
+        )
+        engagements_html = (
+            "<h2>Engagements</h2>"
+            "<table><tr><th>Name</th><th>Interviews</th><th></th></tr>"
+            f"{e_rows}</table>"
+        )
+
     new_form = """
     <h2>Start an interview</h2>
     <form class="inline" method="post" action="/interviews/new">
       <label>Participant
         <input type="text" name="participant" placeholder="name or code" required>
       </label>
+      <label>Engagement <input type="text" name="engagement"
+             placeholder="engagement name (optional)"></label>
       <label>Mode
         <select name="mode">
           <option value="manual">Answered at the keyboard</option>
@@ -166,16 +201,23 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
       </label>
       <button class="primary" type="submit">Start</button>
     </form>
+    <form class="inline" method="post" action="/demo/run" style="margin-top:10px">
+      <button type="submit">Run the demo engagement (5 parallel interviews)</button>
+    </form>
     <div class="note">The participant's name is pseudonymised immediately and never
     stored with their answers. Only this consultant workspace can re-identify, via a
     key held separately.</div>
     """
+    # While interviews are live the dashboard refreshes itself, so the demo
+    # reads as parallel progress without any client-side code.
+    refresh = '<meta http-equiv="refresh" content="4">' if live else ""
     body = (
         "<h1>Consultant workspace</h1>"
         '<p class="sub">Interview · review evidence · validate · report</p>'
         + _nav("/") + new_form + live_html + "<h2>Stored interviews</h2>" + table
+        + engagements_html
     )
-    return layout("Workspace", body, posture=posture, warn=warn)
+    return layout("Workspace", body, posture=posture, warn=warn, head_extra=refresh)
 
 
 # --- interview runner ------------------------------------------------------
@@ -220,7 +262,7 @@ def transcript_turns(segments: list[dict]) -> str:
     out = ""
     for seg in segments:
         cls = "q" if seg["speaker"] == "interviewer" else "a"
-        who = "Ontora" if seg["speaker"] == "interviewer" else "Participant"
+        who = "Groundwork" if seg["speaker"] == "interviewer" else "Participant"
         out += (f'<div class="turn"><div class="{cls}">{esc(who)}: {esc(seg["text"])}</div>'
                 f'<div class="meta">{esc(seg["id"])}</div></div>')
     return out
@@ -262,10 +304,15 @@ def review(*, interview_id: str, participant: str, items: list[dict],
                 '<div class="card">'
                 f'<div class="row"><span class="tier">tier {item["tier"]} · '
                 f'{esc(item["claim_type"])}</span><div class="spacer"></div>{badge}</div>'
-                # Evidence is deliberately rendered BEFORE the judgement controls.
-                f'<div class="quote">{esc(item["quote"])}</div>'
-                f'<div class="meta">{esc(item["segment_id"])} '
-                f'[{item["start"]}:{item["end"]}] · {esc(item["match_kind"])}</div>'
+                # Evidence is deliberately rendered BEFORE the judgement controls,
+                # and the quote links to the exact verbatim moment it rests on.
+                f'<a class="quote evi" href="/transcripts/{esc(interview_id)}'
+                f'#seg-{esc(item["segment_id"])}">{esc(item["quote"])}</a>'
+                f'<div class="meta">gate 1 grounded ✓ · gate 2 supported ✓ · '
+                f'{esc(item["segment_id"])} '
+                f'[{item["start"]}:{item["end"]}] · {esc(item["match_kind"])} · '
+                f'<a href="/transcripts/{esc(interview_id)}#seg-{esc(item["segment_id"])}">'
+                f'open in transcript</a></div>'
                 f"<h3 style=\"margin-top:10px\">{esc(item['statement'])}</h3>"
                 f"{corrected}{form}</div>"
             )
@@ -290,6 +337,93 @@ def review(*, interview_id: str, participant: str, items: list[dict],
 
 
 # --- documents -------------------------------------------------------------
+
+def transcript_page(*, title: str, subtitle: str, segments: list[dict],
+                    back: str, posture: str, warn: bool, note: str = "") -> str:
+    """The stored record with a stable anchor per segment.
+
+    Every finding everywhere in the product deep-links to ``#seg-{segment_id}``;
+    the ``:target`` highlight is what makes provenance feel like provenance —
+    click a claim, land on the exact sentence it quotes.
+    """
+    note_html = f'<div class="note">{esc(note)}</div>' if note else ""
+    rows = ""
+    for seg in segments:
+        who = "Groundwork" if seg["speaker"] == "interviewer" else "Participant"
+        rows += (
+            f'<section class="seg" id="{esc(seg["id"])}">'
+            f'<div class="who">{esc(who)} · {esc(seg["id"])}</div>'
+            f'<div>{esc(seg["text"])}</div></section>'
+        )
+    body = (
+        f"<h1>{esc(title)}</h1><p class=\"sub\">{esc(subtitle)}</p>"
+        + _nav() + note_html
+        + f'<div class="card">{rows}</div>'
+        + f'<p><a class="btn" href="{esc(back)}">Back</a></p>'
+    )
+    return layout(title, body, posture=posture, warn=warn)
+
+
+def grounded_header(*, proposed: int, grounded: int, unsourced: int,
+                    unsupported: int, confabulation: float) -> str:
+    """The honesty block: what the gates admitted, and what they refused."""
+    return (
+        f'<div class="grounded"><strong>Grounded by construction.</strong> '
+        f'{grounded} of {proposed} proposed claims carried a quote that exists '
+        f"verbatim in the transcript and supports the claim; {unsourced} were "
+        f"rejected as unsourced and {unsupported} as unsupported by their quote. "
+        f"Confabulation rate {confabulation:.0%}. Rejected claims are dropped, "
+        f"not softened — nothing below was written by the model without evidence."
+        f"</div>"
+    )
+
+
+def consultant_report_page(*, transcript_id: str, participant: str,
+                           findings: list[dict], grounding: dict | None,
+                           posture: str, warn: bool) -> str:
+    """The deliverable as evidence cards — every claim opens its verbatim moment."""
+    from html import escape as _e
+
+    if not findings:
+        cards = ('<p class="sub">No validated findings yet — accept or amend '
+                 'claims on the review page.</p>')
+    else:
+        cards = ""
+        for f in findings:
+            tag = f.verdict.value
+            ev = f.claim.evidence[0]
+            corrected = ""
+            if f.decision.correction is not None and f.decision.correction.new_statement:
+                corrected = (f'<p class="meta">amended to: '
+                             f'{_e(f.decision.correction.new_statement)}</p>')
+            cards += (
+                '<div class="card">'
+                f'<div class="row"><span class="tier">tier {f.claim.tier} · '
+                f'{_e(f.claim.claim_type.value)}</span><div class="spacer"></div>'
+                f'<span class="verdict {_e(tag)}">{_e(tag.upper())}</span></div>'
+                f'<h3>{_e(f.statement)}</h3>'
+                f'<a class="quote evi" href="/transcripts/{_e(transcript_id)}'
+                f'#seg-{_e(ev.ref.segment_id)}">{_e(ev.quote)}</a>'
+                f'<div class="meta">gate 1 grounded ✓ · gate 2 supported ✓ · '
+                f'{_e(ev.ref.segment_id)} [{ev.ref.start}:{ev.ref.end}] · '
+                f'{_e(ev.match_kind)} · '
+                f'<a href="/transcripts/{_e(transcript_id)}#seg-{_e(ev.ref.segment_id)}">'
+                f'open in transcript</a></div>{corrected}</div>'
+            )
+    grounding_html = ""
+    if grounding:
+        grounding_html = grounded_header(
+            proposed=grounding["proposed"], grounded=grounding["grounded"],
+            unsourced=grounding["unsourced"], unsupported=grounding["unsupported"],
+            confabulation=grounding["confabulation"])
+    body = (
+        f"<h1>Consultant report · {_e(participant)}</h1>"
+        f'<p class="sub">{_e(transcript_id)} · validated findings only · '
+        f"every claim opens the verbatim moment it rests on</p>"
+        + _nav() + grounding_html + cards
+    )
+    return layout("Consultant report", body, posture=posture, warn=warn)
+
 
 def document(*, title: str, subtitle: str, markdown: str, back: str,
              posture: str, warn: bool, note: str = "") -> str:

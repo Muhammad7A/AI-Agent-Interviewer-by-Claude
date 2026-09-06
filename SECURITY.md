@@ -2,7 +2,7 @@
 
 ## Why this file matters more here than in most repositories
 
-Ontora records employees describing their own workplaces — including
+Groundwork records employees describing their own workplaces — including
 unsanctioned tools they use, workarounds they rely on, and judgments about
 their managers. A vulnerability in this system does not leak rows in a
 database. It can identify a named person as the source of a disclosure that
@@ -16,7 +16,7 @@ reporting. If you are unsure, report it.
 **Do not open a public issue for security or privacy defects.**
 
 Use GitHub's private reporting: go to the
-[Security tab](https://github.com/Muhammad7A/AI-Agent-Interviewer-by-Claude/security/advisories/new)
+[Security tab](https://github.com/Muhammad7A/groundwork/security/advisories/new)
 and choose "Report a vulnerability". That opens a private advisory visible only
 to the maintainers.
 
@@ -64,11 +64,11 @@ false accept in either is a serious finding, not a bug report.
 
 **Key and cipher handling.** Storage keys or re-identification keys written to
 disk in plaintext, included in logs, or recoverable from committed artifacts.
-Note that a configured `ONTORA_STORE_KEY` with a broken `cryptography` install
+Note that a configured `GROUNDWORK_STORE_KEY` with a broken `cryptography` install
 must fail loudly rather than silently store plaintext — a regression there is
 in scope.
 
-**Production-posture bypass.** Any way `ONTORA_ENV=production` can start while
+**Production-posture bypass.** Any way `GROUNDWORK_ENV=production` can start while
 serving mock cognition or storing plaintext. A deployment that silently serves
 scripted fake interviews to real employees and records them as genuine
 testimony is a serious defect, not a configuration mistake.
@@ -84,12 +84,12 @@ testimony is a serious defect, not a configuration mistake.
 
 ## Deploying this yourself
 
-If you run Ontora against real people, the following are your responsibility
+If you run Groundwork against real people, the following are your responsibility
 and no license term transfers them:
 
-- run with `ONTORA_ENV=production`, which refuses to start without a live model
+- run with `GROUNDWORK_ENV=production`, which refuses to start without a live model
   and a working cipher
-- store `ONTORA_STORE_KEY` and the pseudonymization key in a secrets manager,
+- store `GROUNDWORK_STORE_KEY` and the pseudonymization key in a secrets manager,
   never in the repository, never in the same place as employer deliverables
 - obtain informed consent covering what is recorded, what is retained, who can
   see it, and how a participant withdraws

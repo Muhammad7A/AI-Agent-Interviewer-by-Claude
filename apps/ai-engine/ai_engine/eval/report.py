@@ -15,7 +15,7 @@ def _pct_range(stat: tuple[float, float, float]) -> str:
 
 def render_eval_report(suite: SuiteResult, *, mode: str) -> str:
     lines: list[str] = []
-    lines.append("# Ontora Evaluation Harness")
+    lines.append("# Groundwork Evaluation Harness")
     lines.append("")
     lines.append(f"- **Mode:** {mode}")
     lines.append(f"- **Repeats per case:** {suite.repeats}")

@@ -1,4 +1,4 @@
-# Toward Organizational Truth: An Epistemic Foundation for Ontora
+# Toward Organizational Truth: An Epistemic Foundation for Groundwork
 
 **A research agenda, not a specification.**
 
@@ -6,7 +6,7 @@
 
 ## Abstract
 
-Ontora is not an information system. It is an **epistemic engine**: a machine that
+Groundwork is not an information system. It is an **epistemic engine**: a machine that
 continuously estimates the enacted reality of an organization from a stream of
 partial, perspectival, non-stationary, and strategically distorted human testimony,
 and reports its estimates to a decision-maker at the resolution their decision
@@ -34,7 +34,7 @@ asserted; they are *estimated*. Evidence does not carry truth; it carries
 a consultant is another fallible observer whose word is strong evidence, not an
 oracle.
 
-We propose instead that Ontora is a **Bayesian filter over a non-stationary latent
+We propose instead that Groundwork is a **Bayesian filter over a non-stationary latent
 organizational process**, equipped with a *learned, perspective-aware testimony
 likelihood*, pursuing *decision-sufficient* posterior resolution, while accounting
 for its own *reflexive* perturbation of the system it observes. Everything that
@@ -92,7 +92,7 @@ and never observed.
 
 Crucially, ω is not static. We model the organization as a **latent stochastic
 process** {ω_t}, evolving under both endogenous drift and exogenous shocks
-(reorgs, tooling changes, market events). Ontora's task is *filtering*: maintaining
+(reorgs, tooling changes, market events). Groundwork's task is *filtering*: maintaining
 a belief over ω_t given the observation history, and *smoothing*: revising past
 beliefs in light of later evidence.
 
@@ -109,7 +109,7 @@ the world and its testimony — is the pivot of the entire theory.
 
 ## 4. Belief representation (Construct 2)
 
-Ontora's state of knowledge at time t is a **belief measure** B_t over Ω:
+Groundwork's state of knowledge at time t is a **belief measure** B_t over Ω:
 
     B_t : Ω → [0,1],   a (possibly imprecise) probability measure over world-models.
 
@@ -293,14 +293,14 @@ progressively upgraded* through five tiers of increasing warrant:
    also lacks Y).
 5. **Interventional (gold standard)** — a client acts on a recommendation and we
    *observe the outcome*. This is the only tier that licenses `do`-calculus claims,
-   and it is where Ontora's causal knowledge becomes genuinely scientific.
+   and it is where Groundwork's causal knowledge becomes genuinely scientific.
 
-> **Reflexivity (A5) formalized.** Because Ontora's outputs intervene, the world
+> **Reflexivity (A5) formalized.** Because Groundwork's outputs intervene, the world
 > model must distinguish `P(y | x)` (observational) from `P(y | do(x))`
 > (interventional), and must anticipate Goodhart: once a metric is surfaced, the
 > behavior generating it changes. Tier-5 updates are thus not free observations but
 > *controlled perturbations of a system that reacts to being measured* — the deepest
-> and most defensible knowledge Ontora can accumulate, and the one no competitor
+> and most defensible knowledge Groundwork can accumulate, and the one no competitor
 > without deployed clients can obtain.
 
 ---
@@ -319,7 +319,7 @@ somewhere between. As B relaxes toward Π, second-order uncertainty widens: old
 beliefs don't just become wrong, they become *known-to-be-stale*.
 
 > **Consequence (perishability ⇒ the product).** Organizational knowledge is not a
-> library; it is a *perishable estimate*. This is a formal argument that Ontora must
+> library; it is a *perishable estimate*. This is a formal argument that Groundwork must
 > be continuous, not a one-shot audit — and, incidentally, the epistemic
 > justification for a subscription. A competitor selling a static report is selling a
 > decaying asset and does not know it.
@@ -363,7 +363,7 @@ follow:
    the interface.
 3. **Reliability learning.** The consultant's own calibration is estimated over
    time; a consultant who is systematically wrong about a class of judgments is
-   down-weighted on that class. Ontora learns *how much to trust its expert* — a
+   down-weighted on that class. Groundwork learns *how much to trust its expert* — a
    capability no static tool possesses.
 
 ---
@@ -377,7 +377,7 @@ propositions is sufficient for d when the *expected value of further information
 less than its cost* — the optimal-stopping criterion of sequential experimental
 design.
 
-Ontora therefore does not report "we are 80% sure." It reports, per decision:
+Groundwork therefore does not report "we are 80% sure." It reports, per decision:
 
 > *"Belief is sufficient to recommend automating invoice reconciliation (the decision
 > boundary is far from our credal interval); it is **not** sufficient to recommend
@@ -402,7 +402,7 @@ clients**, treating each engagement as one draw from a population of organizatio
 
 > **Definition (The population prior).** Π is a distribution over organizational
 > world-models and their testimony dynamics, estimated across every engagement
-> Ontora has ever run. Each new client is initialized from Π — and updated back into
+> Groundwork has ever run. Each new client is initialized from Π — and updated back into
 > it.
 
 This is the entire defensibility thesis. A competitor can rent the same language
@@ -458,7 +458,7 @@ These are hard and, in several cases, unsolved anywhere.
 5. **Causal upgrading from deployment.** Turning client interventions into valid
    `do`-calculus updates under confounding, selection, and Goodhart reactivity.
 6. **The reflexivity control problem.** Modeling, and ideally exploiting, the fact
-   that surfacing beliefs changes the organization. Can Ontora recommend
+   that surfacing beliefs changes the organization. Can Groundwork recommend
    interventions that are robust to their own announcement?
 7. **Decision-sufficiency under vague loss.** Clients often cannot state a loss
    function. How do we elicit "sure enough for what?" when the decision itself is
@@ -471,7 +471,7 @@ These are hard and, in several cases, unsolved anywhere.
 
 ## 18. Conclusion
 
-Ontora's purpose is to *continuously approach organizational truth* — a target that
+Groundwork's purpose is to *continuously approach organizational truth* — a target that
 is latent, perspectival, non-stationary, reflexive, and reachable only through
 fallible testimony. The right foundation is therefore not a store of facts but an
 **estimator**: a Bayesian filter over a moving latent process, driven by a *learned
@@ -480,7 +480,7 @@ compounding its power in a **cross-client population prior** that no competitor 
 rent.
 
 The incumbent architecture built a beautiful place to keep answers. This paper
-argues that Ontora's real work — and its only durable moat — is the disciplined,
+argues that Groundwork's real work — and its only durable moat — is the disciplined,
 humble, and relentless business of *estimating answers it can never be certain of,
 about a world that will not hold still, from people who cannot fully see it and will
 not fully say it.* That is a harder problem than storage. It is also the only one

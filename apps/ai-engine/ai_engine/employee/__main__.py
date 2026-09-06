@@ -16,21 +16,21 @@ from .app import create_employee_app
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ontora employee interview surface")
+    parser = argparse.ArgumentParser(description="Groundwork employee interview surface")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8100)
     args = parser.parse_args(argv)
 
     settings = load_settings()
     # Prove the configured model answers before anyone schedules an interview
-    # against this server — no-op in mock mode. A bad ONTORA_MODEL otherwise
+    # against this server — no-op in mock mode. A bad GROUNDWORK_MODEL otherwise
     # surfaces at the participant's first question, where they can do nothing.
     try:
         preflight_model(settings)
     except ModelUnavailable as exc:
         print(f"# {exc}", file=sys.stderr)
         return 1
-    print(f"# Ontora interview surface — {settings.posture_banner()}")
+    print(f"# Groundwork interview surface — {settings.posture_banner()}")
     print(f"#   data dir: {settings.data_dir}")
     print("#   append-only: this app cannot read any interview or reach the workspace")
     print("#   participants reach it at /i/<invitation token>")

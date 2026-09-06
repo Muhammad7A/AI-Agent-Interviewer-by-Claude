@@ -10,7 +10,7 @@ The app adds no domain logic. It is a surface over what already exists —
 enforces, not a second implementation of them.
 
 **Optional dependency, so optional must mean optional.** ``create_app`` is resolved
-lazily: importing ``ai_engine.webapp.ledger`` (or anything else in the package) must
+lazily: importing ``ai_engine.persistence.ledger`` (or anything else in the package) must
 not require FastAPI, or the engine stops importing on a machine that only wants the
 CLI. Eagerly importing ``.app`` here broke exactly that and turned CI red.
 """

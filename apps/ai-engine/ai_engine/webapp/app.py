@@ -1,134 +1,89 @@
-"""The consultant workspace: routes over the existing pipeline.
+"""The consultant workspace: a presentation over the application layer.
 
 Deliberate boundaries:
 
   * **Consultant-only.** There is no employer surface. The employer's document is
     produced by ``privacy.release`` and read here; it is never a page they log into.
-  * **No domain logic.** Every route delegates to the engine — driver, store, tagger,
-    validation gate, release gate — so the app cannot drift from the guarantees the
-    engine enforces.
-  * **No authentication, on purpose.** This is a localhost single-consultant tool for
-    the Year-0/1 experiments. Auth arrives with the second user (Art. XIX: do not
-    generalise before a second real user exists); the startup banner says so rather
-    than leaving it implied.
+  * **No domain logic.** Every route delegates to
+    :class:`ai_engine.application.service.ConsultantService` — the use-cases live
+    there once, headless and tested; this module parses forms and renders HTML.
+  * **No authentication, unless an operator password is set.** This is a localhost
+    single-consultant tool for the Year-0/1 experiments; with
+    ``GROUNDWORK_OPERATOR_PASSWORD`` set, every route demands HTTP Basic (browsers
+    prompt natively, no third-party dependency), and a production deployment
+    refuses to start without one.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
+import base64
+import hmac
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from ..aggregation.aggregator import aggregate
-from ..aggregation.model import participant_finding_from_claim
-from ..aggregation.relation import make_relation_checker
-from ..config import Settings, get_llm_client, load_settings
-from ..evidence.tagger import EvidenceTagger
-from ..interview.driver import InterviewDriver
-from ..interview.engine import InterviewEngine
-from ..interview.session import DEFAULT_OBJECTIVE
+from ..application.service import (
+    ANSWER_TOO_LONG,
+    ConsultantService,
+)
+from ..config import ConfigurationError, Settings, load_settings
 from ..llm.retry import LLMError
-from ..persistence.event_log import EventLog
-from ..persistence.invitations import InvitationStore
-from ..persistence.transcript_store import TranscriptNotFound, TranscriptStore
-from ..privacy import Pseudonymizer, ReleasePolicy, release, render_release_report
-from ..report.generator import render_markdown_report
-from ..subjects.simulated import SimulatedInterviewee, default_persona
-from ..transcript.model import Speaker, Transcript
-from ..validation.gate import ValidationGate
-from ..validation.model import Correction, ValidatedFinding, Validator, Verdict
+from ..privacy import ReleasePolicy
 from . import views
-from .ledger import read_verdicts
 
 
-@dataclass
-class LiveInterview:
-    """An interview in progress across HTTP requests."""
-
-    driver: InterviewDriver
-    participant_label: str        # pseudonym — the real name is not kept here
-    subject: object | None = None  # a simulated persona, when demoing
-    question: str | None = None
-    #: Set when a model call failed after an answer was recorded. The interview
-    #: is recoverable, not over.
-    stalled: bool = False
-
-
-@dataclass
-class Workspace:
-    """Process-local state for the single consultant using this instance."""
-
-    settings: Settings
-    pseudonymizer: Pseudonymizer
-    live: dict[str, LiveInterview] = field(default_factory=dict)
-
-    @property
-    def store(self) -> TranscriptStore:
-        return TranscriptStore(self.settings.data_dir, self.settings.cipher())
-
-    def posture(self) -> tuple[str, bool]:
-        banner = self.settings.posture_banner()
-        unsafe = (not self.settings.has_live_model) or (not self.store.encrypted)
-        return banner, unsafe
+def _operator_authorized(request: Request, password: str | None) -> bool:
+    if not password:
+        return True
+    auth = request.headers.get("authorization", "")
+    if not auth.startswith("Basic "):
+        return False
+    try:
+        decoded = base64.b64decode(auth[6:].strip()).decode("utf-8")
+    except Exception:
+        return False
+    supplied = decoded.partition(":")[2]
+    return hmac.compare_digest(supplied.encode("utf-8"), password.encode("utf-8"))
 
 
-def _tag(transcript: Transcript, settings: Settings):
-    return EvidenceTagger(llm=get_llm_client(settings)).tag(transcript)
-
-
-def _validator() -> Validator:
-    # A single-consultant local tool: the operator IS the validator. When a second
-    # user exists, this becomes an authenticated identity (see module docstring).
-    return Validator(id="val-consultant", display_name="Consultant", kind="consultant")
-
-
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None,
+               service: ConsultantService | None = None) -> FastAPI:
     settings = settings or load_settings()
     # Refuse to serve real interviews from an unsafe configuration.
     settings.assert_deployable()
+    if settings.is_production and not settings.operator_password:
+        raise ConfigurationError(
+            "GROUNDWORK_OPERATOR_PASSWORD must be set in production: the "
+            "consultant workspace holds employee testimony, and its only "
+            "development protection is that it binds to localhost.")
+    svc = service or ConsultantService(settings)
+    employer_k = ReleasePolicy.for_employer().k_anonymity
 
-    # The engagement's pseudonymizer survives restarts: a fresh salt per process
-    # would give the same person a new pseudonym after a restart, and two
-    # transcripts from one participant would then count as two voices in
-    # aggregation — quietly reporting a k the data does not have.
-    workspace = Workspace(
-        settings=settings,
-        pseudonymizer=Pseudonymizer.load_or_create(settings.data_dir, settings.cipher()))
-    app = FastAPI(title="Ontora consultant workspace", docs_url=None, redoc_url=None)
-    app.state.workspace = workspace
+    app = FastAPI(title="Groundwork consultant workspace", docs_url=None,
+                  redoc_url=None)
+    app.state.service = svc
 
-    def ws(request: Request) -> Workspace:
-        return request.app.state.workspace
+    @app.middleware("http")
+    async def _require_operator(request: Request, call_next):
+        if not _operator_authorized(request, settings.operator_password):
+            posture, warn = svc.posture()
+            return HTMLResponse(
+                views.message(
+                    title="Operator sign-in required",
+                    text="This workspace holds employee testimony. Sign in with "
+                         "the operator password to continue.",
+                    posture=posture, warn=warn),
+                status_code=401,
+                headers={"WWW-Authenticate": 'Basic realm="groundwork", charset="UTF-8"'})
+        return await call_next(request)
 
     # -- dashboard ---------------------------------------------------------
     @app.get("/", response_class=HTMLResponse)
     def dashboard(request: Request) -> HTMLResponse:
-        w = ws(request)
-        posture, warn = w.posture()
-        store = w.store
-        interviews = []
-        for tid in store.list_ids():
-            try:
-                transcript = store.load(tid)
-            except Exception:
-                continue
-            tagging = _tag(transcript, w.settings)
-            verdicts = read_verdicts(w.settings.data_dir, tid, w.settings.cipher())
-            interviews.append({
-                "id": tid,
-                "participant": transcript.interview_id or "—",
-                "segments": len(transcript.segments),
-                "claims": len(tagging.claims),
-                "validated": sum(1 for c in tagging.claims if c.id in verdicts),
-            })
-        live = [
-            {"id": tid, "turns": item.driver.state.turn_count,
-             "status": "closed" if item.driver.closed else "awaiting answer"}
-            for tid, item in w.live.items()
-        ]
+        posture, warn = svc.posture()
         return HTMLResponse(views.dashboard(
-            interviews=interviews, live=live, posture=posture, warn=warn))
+            interviews=svc.dashboard_rows(), live=svc.live_summary(),
+            engagements=svc.list_engagements(),
+            posture=posture, warn=warn))
 
     # -- invitations -------------------------------------------------------
     @app.post("/invitations/new")
@@ -139,20 +94,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         The pseudonym is assigned here, on the consultant's side, so the interview
         surface never asks the participant for a name — there is no field for it.
         """
-        w = ws(request)
-        alias = w.pseudonymizer.pseudonym(participant.strip() or "unknown")
-        w.pseudonymizer.save_state(w.settings.data_dir, w.settings.cipher())
-        InvitationStore(w.settings.data_dir).create(pseudonym=alias)
+        svc.invite(participant)
+        return RedirectResponse("/invitations", status_code=303)
+
+    @app.post("/invitations/batch")
+    def invite_batch(request: Request, names: str = Form(...)) -> RedirectResponse:
+        svc.invite_batch(names)
         return RedirectResponse("/invitations", status_code=303)
 
     @app.get("/invitations", response_class=HTMLResponse)
     def invitations(request: Request) -> HTMLResponse:
-        w = ws(request)
-        posture, warn = w.posture()
+        posture, warn = svc.posture()
         items = [
             {"token": i.token, "pseudonym": i.pseudonym, "status": i.status,
              "transcript_id": i.transcript_id or ""}
-            for i in InvitationStore(w.settings.data_dir).list_all()
+            for i in svc.list_invitations()
         ]
         return HTMLResponse(views.invitations(
             items=items, posture=posture, warn=warn))
@@ -160,162 +116,101 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # -- interview ---------------------------------------------------------
     @app.post("/interviews/new")
     def start_interview(request: Request, participant: str = Form(...),
-                        mode: str = Form("manual")) -> RedirectResponse:
-        w = ws(request)
-        # Pseudonymise at ingest: the real name goes no further than this call.
-        alias = w.pseudonymizer.pseudonym(participant.strip() or "unknown")
-        w.pseudonymizer.save_state(w.settings.data_dir, w.settings.cipher())
-        transcript = Transcript(engagement_id="eng-local", tenant_id="tenant-local")
-        transcript.interview_id = alias
-
-        llm = get_llm_client(w.settings)
-        driver = InterviewDriver(
-            engine=InterviewEngine(llm=llm, max_turns=w.settings.max_turns),
-            transcript=transcript,
-            objective=DEFAULT_OBJECTIVE,
-            event_log=EventLog(w.settings.data_dir, transcript.id, layer="testimony",
-                               cipher=w.settings.cipher()),
-            max_turns=w.settings.max_turns,
-        )
-        subject = None
-        if mode == "simulated":
-            subject = SimulatedInterviewee(default_persona("open"), llm=llm)
-
-        item = LiveInterview(driver=driver, participant_label=alias, subject=subject)
+                        mode: str = Form("manual"),
+                        engagement: str = Form("")):
+        engagement_id = svc.resolve_engagement(engagement)
         try:
-            item.question = driver.next_question()
+            transcript_id = svc.start(participant, simulated=(mode == "simulated"),
+                                      engagement_id=engagement_id)
         except LLMError:
             # Nothing is registered, so the consultant can simply retry; the
             # transcript had no answers yet.
+            posture, warn = svc.posture()
             return HTMLResponse(views.message(
                 title="Model temporarily unavailable",
                 text="The interview could not be started — no answers were "
                      "recorded. Try again.",
-                posture=w.posture()[0], warn=w.posture()[1]), status_code=503)
-        if subject is not None:
-            _run_simulated(item)
-        w.live[transcript.id] = item
-        return RedirectResponse(f"/interviews/{transcript.id}", status_code=303)
-
-    def _run_simulated(item: LiveInterview) -> None:
-        """Let a simulated persona answer to completion (demo mode)."""
-        while item.question is not None and not item.driver.closed:
-            item.driver.submit_answer(item.subject.answer(item.question))
-            item.question = item.driver.next_question()
+                posture=posture, warn=warn), status_code=503)
+        return RedirectResponse(f"/interviews/{transcript_id}", status_code=303)
 
     @app.get("/interviews/{interview_id}", response_class=HTMLResponse)
     def interview(request: Request, interview_id: str) -> HTMLResponse:
-        w = ws(request)
-        posture, warn = w.posture()
-        item = w.live.get(interview_id)
-        if item is None:
+        posture, warn = svc.posture()
+        view = svc.view(interview_id)
+        if view is None:
             return HTMLResponse(views.message(
                 title="Interview not found",
                 text="It may already be finalised — check the stored interviews.",
                 posture=posture, warn=warn), status_code=404)
-        if item.stalled and not item.driver.closed:
-            # A retry after a model failure: the answer is recorded, only the
-            # next question was missing.
-            try:
-                item.question = item.driver.next_question()
-                item.stalled = False
-            except LLMError:
-                return HTMLResponse(views.message(
-                    title="Model temporarily unavailable",
-                    text="The interview is intact — refresh to retry. Nothing "
-                         "needs to be re-entered.",
-                    posture=posture, warn=warn), status_code=503)
-        segments = [{"id": s.id, "speaker": s.speaker.value, "text": s.text}
-                    for s in item.driver.transcript.segments]
+        if view["stalled"]:
+            return HTMLResponse(views.message(
+                title="Model temporarily unavailable",
+                text="The interview is intact — refresh to retry. Nothing "
+                     "needs to be re-entered.",
+                posture=posture, warn=warn), status_code=503)
         return HTMLResponse(views.runner(
-            interview_id=interview_id, participant=item.participant_label,
-            question=item.question, turns=item.driver.state.turn_count,
-            max_turns=w.settings.max_turns,
-            transcript_html=views.transcript_turns(segments),
-            closed=item.driver.closed or item.question is None,
-            coverage=item.driver.state.summary(), posture=posture, warn=warn))
+            interview_id=interview_id, participant=view["participant"],
+            question=view["question"], turns=view["turns"],
+            max_turns=settings.max_turns,
+            transcript_html=views.transcript_turns(view["segments"]),
+            closed=view["closed"],
+            coverage=view["coverage"], posture=posture, warn=warn))
 
     @app.post("/interviews/{interview_id}/answer")
     def answer(request: Request, interview_id: str,
                answer: str = Form(...)):
-        w = ws(request)
-        item = w.live.get(interview_id)
-        if item is not None and not item.driver.closed and item.question is not None:
-            if len(answer) > w.settings.max_answer_chars:
-                return HTMLResponse(views.message(
-                    title="Answer too long",
-                    text=f"Answers are capped at {w.settings.max_answer_chars} "
-                         "characters. Split it into parts and answer again — "
-                         "nothing was recorded.",
-                    posture=w.posture()[0], warn=w.posture()[1]), status_code=413)
-            item.driver.submit_answer(answer)
-            try:
-                item.question = item.driver.next_question()
-            except LLMError:
-                # The answer is recorded; only the next question failed. The
-                # interview page retries on the next view rather than losing
-                # the session to one transient model failure.
-                item.question = None
-                item.stalled = True
+        outcome = svc.submit_answer(interview_id, answer)
+        if outcome == ANSWER_TOO_LONG:
+            posture, warn = svc.posture()
+            return HTMLResponse(views.message(
+                title="Answer too long",
+                text=f"Answers are capped at {settings.max_answer_chars} "
+                     "characters. Split it into parts and answer again — "
+                     "nothing was recorded.",
+                posture=posture, warn=warn), status_code=413)
         return RedirectResponse(f"/interviews/{interview_id}", status_code=303)
 
     @app.post("/interviews/{interview_id}/finish")
     def finish(request: Request, interview_id: str) -> RedirectResponse:
-        w = ws(request)
-        item = w.live.pop(interview_id, None)
-        if item is None:
+        transcript_id = svc.finish(interview_id)
+        if transcript_id is None:
             return RedirectResponse("/", status_code=303)
-        transcript = item.driver.finish()
-        # Store it, so every quote stays verifiable after this process exits. The
-        # transcript is finalized here for the first time, so it cannot already
-        # exist — a second save would mean double-handling, and write-once
-        # immutability is the store's contract, not an obstacle to route around.
-        try:
-            w.store.save(transcript)
-        except FileExistsError:
-            pass  # already stored; the review page below is still the right place
-        return RedirectResponse(f"/transcripts/{transcript.id}/review", status_code=303)
+        return RedirectResponse(f"/transcripts/{transcript_id}/review",
+                                status_code=303)
 
     # -- transcript & review ----------------------------------------------
-    def _load(w: Workspace, transcript_id: str) -> Transcript | None:
-        try:
-            return w.store.load(transcript_id)
-        except (TranscriptNotFound, Exception):
-            return None
-
     @app.get("/transcripts/{transcript_id}", response_class=HTMLResponse)
     def transcript_view(request: Request, transcript_id: str) -> HTMLResponse:
-        w = ws(request)
-        posture, warn = w.posture()
-        transcript = _load(w, transcript_id)
+        posture, warn = svc.posture()
+        transcript = svc.load_transcript(transcript_id)
         if transcript is None:
             return HTMLResponse(views.message(title="Not found",
                                               text="No stored transcript with that id.",
                                               posture=posture, warn=warn), status_code=404)
         segments = [{"id": s.id, "speaker": s.speaker.value, "text": s.text}
                     for s in transcript.segments]
-        body = views.document(
+        body = views.transcript_page(
             title=f"Transcript {transcript_id}",
-            subtitle=f"{len(segments)} segments · immutable",
-            markdown=transcript.render(),
+            subtitle=f"{len(segments)} segments · immutable · every finding links here",
+            segments=segments,
             back=f"/transcripts/{transcript_id}/review",
             posture=posture, warn=warn,
-            note="The stored record. Every quote in every report resolves to a span here.")
+            note="The stored record. Every quote in every report deep-links to the "
+                 "highlighted segment — provenance you can click.")
         return HTMLResponse(body)
 
     @app.get("/transcripts/{transcript_id}/review", response_class=HTMLResponse)
     def review(request: Request, transcript_id: str) -> HTMLResponse:
-        w = ws(request)
-        posture, warn = w.posture()
-        transcript = _load(w, transcript_id)
+        posture, warn = svc.posture()
+        transcript = svc.load_transcript(transcript_id)
         if transcript is None:
             return HTMLResponse(views.message(title="Not found",
                                               text="No stored transcript with that id.",
                                               posture=posture, warn=warn), status_code=404)
-        tagging = _tag(transcript, w.settings)
-        verdicts = read_verdicts(w.settings.data_dir, transcript_id, w.settings.cipher())
+        tagging = svc.tag(transcript_id)
+        verdicts = svc.verdicts(transcript_id)
         items = []
-        for claim in tagging.claims:
+        for claim in (tagging.claims if tagging else []):
             ev = claim.evidence[0]
             recorded = verdicts.get(claim.id)
             items.append({
@@ -342,110 +237,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def validate(request: Request, transcript_id: str, claim_id: str = Form(...),
                  verdict: str = Form(...), reason: str = Form(""),
                  statement: str = Form("")) -> RedirectResponse:
-        w = ws(request)
-        transcript = _load(w, transcript_id)
-        if transcript is None:
-            return RedirectResponse("/", status_code=303)
-        claim = next((c for c in _tag(transcript, w.settings).claims
-                      if c.id == claim_id), None)
-        if claim is None:
-            return RedirectResponse(f"/transcripts/{transcript_id}/review",
-                                    status_code=303)
-
-        gate = ValidationGate(_validator(),
-                              EventLog(w.settings.data_dir, transcript_id,
-                                       layer="validation", cipher=w.settings.cipher()))
-        try:
-            chosen = Verdict(verdict)
-        except ValueError:
-            return RedirectResponse(f"/transcripts/{transcript_id}/review",
-                                    status_code=303)
-        correction = None
-        if chosen is Verdict.AMENDED:
-            correction = Correction(new_statement=statement.strip() or None)
-        try:
-            # The gate enforces the invariants: a reason is required to amend or
-            # reject, and the evidence reviewed is recorded with the decision.
-            gate.decide(claim, chosen, reason.strip(), correction)
-        except Exception:
-            pass  # invalid decision (e.g. no reason) — the page will still show it unreviewed
-        return RedirectResponse(f"/transcripts/{transcript_id}/review", status_code=303)
+        # The gate enforces the invariants (a reason to amend or reject, the
+        # reviewed evidence recorded); an invalid decision simply stays unreviewed.
+        svc.record_verdict(transcript_id, claim_id, verdict,
+                           reason=reason, new_statement=statement)
+        return RedirectResponse(f"/transcripts/{transcript_id}/review",
+                                status_code=303)
 
     # -- documents ---------------------------------------------------------
-    def _validated_findings(w: Workspace, transcript: Transcript) -> list[ValidatedFinding]:
-        """Rebuild ValidatedFindings from the recorded decisions."""
-        from ..validation.model import ValidationDecision
-
-        tagging = _tag(transcript, w.settings)
-        verdicts = read_verdicts(w.settings.data_dir, transcript.id, w.settings.cipher())
-        findings: list[ValidatedFinding] = []
-        for claim in tagging.claims:
-            recorded = verdicts.get(claim.id)
-            if recorded is None:
-                continue
-            try:
-                decision = ValidationDecision(
-                    id=f"val-{claim.id}",
-                    claim_id=claim.id,
-                    verdict=Verdict(recorded.verdict),
-                    validator=_validator(),
-                    reviewed_evidence=tuple(e.ref for e in claim.evidence),
-                    reason=recorded.reason or "recorded",
-                    correction=(Correction(new_statement=recorded.new_statement)
-                                if recorded.verdict == Verdict.AMENDED.value
-                                and recorded.new_statement else None),
-                )
-            except Exception:
-                continue
-            findings.append(ValidatedFinding(claim=claim, decision=decision))
-        return findings
-
     @app.get("/transcripts/{transcript_id}/report", response_class=HTMLResponse)
     def consultant_report(request: Request, transcript_id: str) -> HTMLResponse:
-        w = ws(request)
-        posture, warn = w.posture()
-        transcript = _load(w, transcript_id)
-        if transcript is None:
+        posture, warn = svc.posture()
+        page = svc.consultant_report_page(transcript_id)
+        if page is None:
             return HTMLResponse(views.message(title="Not found", text="Unknown transcript.",
                                               posture=posture, warn=warn), status_code=404)
-        markdown = render_markdown_report(
-            transcript=transcript,
-            findings=_validated_findings(w, transcript),
-            objective=DEFAULT_OBJECTIVE,
-            engagement_id=transcript.engagement_id,
-            interview_id=transcript.id,
-            validator_kind="consultant",
-            validator_name="Consultant",
-        )
-        return HTMLResponse(views.document(
-            title="Consultant report", subtitle=f"{transcript_id} · validated findings only",
-            markdown=markdown, back=f"/transcripts/{transcript_id}/review",
-            posture=posture, warn=warn,
-            note="Only findings you accepted or amended appear. Each carries the quote "
-                 "it rests on."))
+        return HTMLResponse(views.consultant_report_page(
+            transcript_id=page["transcript_id"], participant=page["participant"],
+            findings=page["findings"], grounding=page["grounding"],
+            posture=posture, warn=warn))
 
     @app.get("/transcripts/{transcript_id}/employer", response_class=HTMLResponse)
     def employer_release(request: Request, transcript_id: str) -> HTMLResponse:
-        w = ws(request)
-        posture, warn = w.posture()
-        transcript = _load(w, transcript_id)
-        if transcript is None:
+        posture, warn = svc.posture()
+        if svc.load_transcript(transcript_id) is None:
             return HTMLResponse(views.message(title="Not found", text="Unknown transcript.",
                                               posture=posture, warn=warn), status_code=404)
-        findings = [
-            participant_finding_from_claim(
-                f.claim, transcript,
-                participant_id=transcript.interview_id or "P-unknown",
-                participant_name=transcript.interview_id or "P-unknown")
-            for f in _validated_findings(w, transcript) if f.is_reportable
-        ]
-        aggregation = aggregate(findings, make_relation_checker(get_llm_client(w.settings)))
-        # The documented employer guarantee, not a weaker per-interview variant:
-        # one person is not a group, so a single transcript releases only
-        # suppressions — that is the page being honest, not broken.
-        package = release(aggregation, policy=ReleasePolicy.for_employer())
-        markdown = render_release_report(package, org_name="This engagement",
-                                         interview_count=1)
+        markdown = svc.employer_release_markdown([transcript_id])
         return HTMLResponse(views.document(
             title="Employer release", subtitle=f"{transcript_id} · through the privacy firewall",
             markdown=markdown, back=f"/transcripts/{transcript_id}/review",
@@ -454,31 +272,49 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                  "engagement-level report instead once several people have been "
                  "interviewed — see the engagement report."))
 
+    @app.post("/demo/run")
+    def run_demo(request: Request):
+        from ..application.demo import run_demo_engagement
+
+        result = run_demo_engagement(svc)
+        return RedirectResponse(
+            f"/engagements/{result.engagement_id}/synthesis", status_code=303)
+
+    @app.get("/engagements/{engagement_id}/synthesis", response_class=HTMLResponse)
+    def engagement_synthesis(request: Request, engagement_id: str) -> HTMLResponse:
+        posture, warn = svc.posture()
+        transcripts = svc.transcripts_for_engagement(engagement_id)
+        if not transcripts:
+            return HTMLResponse(views.message(
+                title="No interviews in this engagement",
+                text="Run the demo or start interviews into it first.",
+                posture=posture, warn=warn), status_code=404)
+        markdown = svc.engagement_synthesis_markdown(engagement_id)
+        auto = any(
+            "auto-sim" in (v.validator_kind or "")
+            for tid in transcripts
+            for v in svc.verdicts(tid).values()
+        )
+        return HTMLResponse(views.document(
+            title="Engagement synthesis",
+            subtitle=f"{svc.engagement_name(engagement_id)} · "
+                     f"{len(transcripts)} interviews · attributed verbatim detail "
+                     f"(consultant view)",
+            markdown=markdown, back="/", posture=posture, warn=warn,
+            note=("Some or all verdicts in this engagement were recorded by the "
+                  "auto-sim reviewer (a demo), not a human consultant."
+                  if auto else
+                  "Every verdict in this engagement was recorded by a human "
+                  "consultant through the review page.")))
     @app.get("/engagement", response_class=HTMLResponse)
     def engagement(request: Request) -> HTMLResponse:
-        w = ws(request)
-        posture, warn = w.posture()
-        store = w.store
-        findings = []
-        count = 0
-        for tid in store.list_ids():
-            transcript = _load(w, tid)
-            if transcript is None:
-                continue
-            count += 1
-            alias = transcript.interview_id or f"P-{tid[-6:]}"
-            for f in _validated_findings(w, transcript):
-                if f.is_reportable:
-                    findings.append(participant_finding_from_claim(
-                        f.claim, transcript, participant_id=alias, participant_name=alias))
-        aggregation = aggregate(findings, make_relation_checker(get_llm_client(w.settings)))
-        package = release(aggregation, policy=ReleasePolicy.for_employer())
-        markdown = render_release_report(package, org_name="This engagement",
-                                         interview_count=count)
+        posture, warn = svc.posture()
+        markdown = svc.employer_release_markdown()
+        count = sum(1 for tid in svc.store.list_ids()
+                    if svc.load_transcript(tid) is not None)
         return HTMLResponse(views.document(
             title="Engagement report (employer release)",
-            subtitle=f"{count} interviews · aggregated, k-anonymity "
-                     f"{ReleasePolicy.for_employer().k_anonymity}",
+            subtitle=f"{count} interviews · aggregated, k-anonymity {employer_k}",
             markdown=markdown, back="/", posture=posture, warn=warn,
             note="This is what the employer receives: group-level findings only, no "
                  "names, no verbatim quotes, and disagreements reported without sides."))

@@ -196,7 +196,8 @@ class PipelineReuseTest(unittest.TestCase):
         except Exception:  # pragma: no cover
             self.skipTest("requires fastapi and httpx")
 
-        import ai_engine.webapp.app as appmod
+        import ai_engine.application.service as appmod
+        from ai_engine.webapp.app import create_app
         from ai_engine.config import Runtime, Settings
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -208,7 +209,7 @@ class PipelineReuseTest(unittest.TestCase):
             original = appmod.get_llm_client
             try:
                 appmod.get_llm_client = lambda s: None      # seed via the mock path
-                client = TestClient(appmod.create_app(settings))
+                client = TestClient(create_app(settings))
                 r = client.post("/interviews/new",
                                 data={"participant": "A", "mode": "simulated"},
                                 follow_redirects=False)

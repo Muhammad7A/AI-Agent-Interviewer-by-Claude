@@ -37,6 +37,7 @@ def render_markdown_report(
     validator_kind: str,
     validator_name: str,
     coverage_summary: dict | None = None,
+    grounding_summary: dict | None = None,
     generated_at: datetime | None = None,
 ) -> str:
     generated_at = generated_at or datetime.now(timezone.utc)
@@ -60,6 +61,16 @@ def render_markdown_report(
     lines.append(f"- **Validated by:** {validator_name}")
     lines.append(f"- **Objective:** {objective}")
     lines.append("")
+    if grounding_summary:
+        g = grounding_summary
+        lines.append(
+            f"> ✅ **Grounded by construction.** {g['grounded']} of {g['proposed']} "
+            "proposed claims carried a quote that exists verbatim in the transcript "
+            f"and supports the claim; {g['unsourced']} were rejected as unsourced and "
+            f"{g['unsupported']} as unsupported by their quote. Confabulation rate "
+            f"{g['confabulation']:.0%}. Rejected claims are dropped, not softened."
+        )
+        lines.append("")
     lines.append(
         "> Every finding below was proposed by AI from interview testimony and "
         "**validated by a human reviewer**. Each carries a verbatim quote that "
@@ -86,13 +97,14 @@ def render_markdown_report(
                 ev = f.claim.evidence[0]
                 quote = ev.resolve(transcript)
                 tag = "amended" if f.verdict is Verdict.AMENDED else "validated"
+                anchor = f"/transcripts/{transcript.id}#seg-{ev.ref.segment_id}"
                 lines.append(f"### {f.statement}")
                 lines.append(f"_Tier {f.tier} · {tag}_")
                 lines.append("")
                 lines.append(
                     f"> \"{quote}\"  \n"
                     f"> — evidence `{ev.ref.segment_id}` [{ev.ref.start}:{ev.ref.end}] "
-                    f"({ev.match_kind})"
+                    f"({ev.match_kind}) · [open the exact moment]({anchor})"
                 )
                 lines.append("")
 

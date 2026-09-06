@@ -1,6 +1,6 @@
-# Ontora MVP — Product Design
+# Groundwork MVP — Product Design
 
-> **The whole MVP exists to answer one question:** *Can Ontora help a consultant
+> **The whole MVP exists to answer one question:** *Can Groundwork help a consultant
 > get useful organizational truth faster and more reliably than doing the
 > interviews by hand?* Everything that does not serve that question is deleted.
 > Text-first. Narrow but sharp. It should not try to look bigger than it is.
@@ -14,10 +14,10 @@ sitting through 15 interviews, taking messy notes, and synthesizing them into a 
 on a Sunday night — and the quality depends entirely on how good that consultant is
 and how honest each employee felt like being.
 
-Ontora replaces the *labor*, not the *judgment*. The consultant defines what they
-need to learn and who to ask. Ontora runs thoughtful, adaptive **text** interviews
+Groundwork replaces the *labor*, not the *judgment*. The consultant defines what they
+need to learn and who to ask. Groundwork runs thoughtful, adaptive **text** interviews
 with each employee — private, unhurried, and often more candid than a face-to-face
-because people will type what they won't say aloud. Ontora reads every transcript,
+because people will type what they won't say aloud. Groundwork reads every transcript,
 proposes candidate findings — bottlenecks, contradictions, automation
 opportunities — and shows the **exact quotes** behind each one and **how many
 independent people** said it. The consultant reviews in an afternoon what used to
@@ -32,7 +32,7 @@ owns the truth.** That division is the product.
 ## 2. The one thing we're proving (and what we are NOT proving)
 
 We are proving: **time-to-useful-truth beats manual, and the consultant trusts the
-result.** We are *not* proving: that Ontora replaces consultants, models the whole
+result.** We are *not* proving: that Groundwork replaces consultants, models the whole
 org, detects drift, or learns across clients. Those are later. If the core loop
 doesn't beat a legal pad and a smart associate, nothing downstream matters.
 
@@ -330,7 +330,7 @@ four.
 
 ---
 
-## 16. Success metrics (does Ontora deserve to exist?)
+## 16. Success metrics (does Groundwork deserve to exist?)
 
 **Primary (the thesis):**
 - **Time-to-useful-truth vs. manual** — consultant's self-reported hours saved on a
@@ -396,7 +396,7 @@ four.
 
 If forced to cut: keep 1-3, hand-run 4, and deliver 5 as a hand-formatted doc. The
 irreducible core is **interview → findings → evidence-backed review.** That trio, and
-only that trio, answers whether Ontora deserves to exist.
+only that trio, answers whether Groundwork deserves to exist.
 
 ---
 

@@ -1,6 +1,6 @@
-# Ontora — Five-Year Research & Product Roadmap
+# Groundwork — Five-Year Research & Product Roadmap
 
-*How Ontora becomes better every year without losing product focus: a program for
+*How Groundwork becomes better every year without losing product focus: a program for
 building a defensible, compounding, scientifically credible organizational
 reasoning system. Not a feature roadmap — a plan for turning validated customer
 work into science, and science back into customer value, on a loop that widens
@@ -10,7 +10,7 @@ with time.*
 
 ## 1. Executive summary
 
-Ontora's long-term value does not come from a model, a graph, or an architecture —
+Groundwork's long-term value does not come from a model, a graph, or an architecture —
 all rented, copyable, or invisible (see `MOAT_ANALYSIS`). It comes from a **loop**:
 
 > **Product generates validated-outcome data → data enables science (calibration,
@@ -25,13 +25,13 @@ swappable. Three commitments define the whole roadmap:
    on a model. We rent the best available behind an abstraction and capture the
    improvement as free quality and margin. What we own is the *validated-outcome
    dataset, the calibration, and the trust* — the layers models don't touch. If
-   GPT-N+1 or Claude-N+1 gets better tomorrow, Ontora gets better tomorrow, for free.
+   GPT-N+1 or Claude-N+1 gets better tomorrow, Groundwork gets better tomorrow, for free.
 2. **We do not promote a claim above its evidence.** Year 1 proves the *product*
    claim (the wedge works). Years 2–3 test the *scientific/business* claim (the loop
    compounds). We refuse to sell the second before we've earned it.
 3. **There is an honest fork at Year 3.** If the loop compounds (skill transfers
-   across clients), Ontora becomes a research company with a widening moat. If it
-   does not, Ontora is a *very good product company* with a trust moat — we say so,
+   across clients), Groundwork becomes a research company with a widening moat. If it
+   does not, Groundwork is a *very good product company* with a trust moat — we say so,
    delete the research overhead, and stop pretending. Both are fundable. Only
    self-deception is fatal.
 
@@ -155,7 +155,7 @@ Each year: the **spine** (the one question), a **seven-track milestone table**, 
 | **Research** | Predictive organizational simulation **validated against realized outcomes**; counterfactual reasoning; the world-model synthesis. |
 | **Product** | Predictive capability ("if you change X, expect Y") shipped **only with calibrated confidence**; scenario / what-if planning for transformations. |
 | **Data** | Rich longitudinal, multi-client, outcome-linked corpus — the compounding asset at maturity. |
-| **Model** | Ontora is now a data + calibration company renting whatever frontier model is best; frontier improvement is pure tailwind. |
+| **Model** | Groundwork is now a data + calibration company renting whatever frontier model is best; frontier improvement is pure tailwind. |
 | **Trust / Workflow** | Predictions are calibrated and evidence-grounded, or they are not shipped. |
 | **Defensibility** | The validated organizational world model + trust + the loop; a new entrant needs *years of validated engagements* to match it. |
 | **Enterprise** | Platform maturity; ecosystem; partner integrations. |
@@ -272,7 +272,7 @@ demo-shine; each is measured against an external truth proxy.
 - **Fine-tuning** is ever required (if base + prompting suffice, never do it).
 - **Causal / predictive** capability is achievable (if Q11/simulation fail, stay
   descriptive — still valuable).
-- Ontora **must be a research company** (if H-B fails, be a product company — that is
+- Groundwork **must be a research company** (if H-B fails, be a product company — that is
   a success, not a failure).
 
 ## 10. What the company must refuse to do — even if it becomes fashionable
@@ -320,16 +320,16 @@ demo-shine; each is measured against an external truth proxy.
   (Y0–2, per-engagement only) → abstracted meta-patterns (Y2–3) → federated/DP
   aggregation with a privacy budget and adversarial reconstruction testing (Y3+).
   What transfers is validated *pattern*, never data.
-- **What keeps Ontora valuable even as frontier models improve fast?** The
+- **What keeps Groundwork valuable even as frontier models improve fast?** The
   validated-outcome dataset, the calibration, the trust position, and workflow
   entrenchment — none of which a better model provides. Frontier gains flow *into*
-  Ontora as free quality; Ontora's moat accrues in the layers models don't reach.
+  Groundwork as free quality; Groundwork's moat accrues in the layers models don't reach.
 
 ---
 
-## 12. Concluding thesis — how this turns Ontora into a compounding system
+## 12. Concluding thesis — how this turns Groundwork into a compounding system
 
-Most startups compound *distribution* or *capital*. Ontora, if it works, compounds
+Most startups compound *distribution* or *capital*. Groundwork, if it works, compounds
 *validated knowledge of how organizations actually work* — a slower but far rarer
 asset, because it can only be produced by doing trusted, well-measured work over
 time, and it decays if not continuously refreshed. The roadmap is engineered so
@@ -344,9 +344,9 @@ frontier AI is a gift rather than a threat. The roadmap's deepest discipline is 
 it *knows which company it is building at each stage* — a product company proving a
 wedge, then possibly a research company proving a science — and it has pre-committed
 to telling the truth about which one it turns out to be. If the loop compounds,
-Ontora becomes something a competitor cannot copy in six weeks or bundle away for
+Groundwork becomes something a competitor cannot copy in six weeks or bundle away for
 free: a calibrated, trusted, ever-deepening model of organizational reality that
-took years of validated engagements to earn. If it does not compound, Ontora is
+took years of validated engagements to earn. If it does not compound, Groundwork is
 still a genuinely useful, trust-differentiated product — and it will have spent the
 minimum to find out. Either way, the company is built to learn the truth about
 itself, which is the only foundation on which a system that claims to learn the

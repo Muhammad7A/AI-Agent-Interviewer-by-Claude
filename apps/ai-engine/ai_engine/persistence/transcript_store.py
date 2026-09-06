@@ -25,7 +25,7 @@ from pathlib import Path
 from ..transcript.model import Speaker, Transcript, TranscriptSegment
 from .crypto import Cipher, NullCipher
 
-SCHEMA = "ontora.transcript/v1"
+SCHEMA = "groundwork.transcript/v1"
 _PLAIN_SUFFIX = ".transcript.json"
 _ENCRYPTED_SUFFIX = ".transcript.enc"
 

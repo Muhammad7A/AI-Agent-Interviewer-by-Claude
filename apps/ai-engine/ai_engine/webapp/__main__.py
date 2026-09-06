@@ -18,26 +18,34 @@ from .app import create_app
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ontora consultant workspace")
+    parser = argparse.ArgumentParser(description="Groundwork consultant workspace")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
 
     settings = load_settings()
     # Prove the configured model answers before anyone schedules an interview
-    # against this server — no-op in mock mode. A bad ONTORA_MODEL otherwise
+    # against this server — no-op in mock mode. A bad GROUNDWORK_MODEL otherwise
     # surfaces at the participant's first question, where they can do nothing.
     try:
         preflight_model(settings)
     except ModelUnavailable as exc:
         print(f"# {exc}", file=sys.stderr)
         return 1
-    print(f"# Ontora consultant workspace — {settings.posture_banner()}")
+    print(f"# Groundwork consultant workspace — {settings.posture_banner()}")
     print(f"#   data dir: {settings.data_dir}")
-    print("#   no authentication: single-consultant local tool")
+    if settings.operator_password:
+        print("#   operator authentication: enabled (HTTP Basic)")
+    else:
+        print("#   no authentication: single-consultant local tool "
+              "(set GROUNDWORK_OPERATOR_PASSWORD to require a sign-in)")
     if args.host not in ("127.0.0.1", "localhost", "::1"):
-        print(f"#   ⚠ binding to {args.host}: this app has NO authentication and holds "
-              f"employee testimony. Do not expose it to a network.")
+        if settings.operator_password:
+            print(f"#   ⚠ binding to {args.host}: this app holds employee "
+                  f"testimony. Serve over HTTPS only.")
+        else:
+            print(f"#   ⚠ binding to {args.host}: this app has NO authentication and holds "
+                  f"employee testimony. Do not expose it to a network.")
     print(f"#   → http://{args.host}:{args.port}")
 
     try:

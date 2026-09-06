@@ -1,7 +1,7 @@
-# Ontora — Scientific Research Program
+# Groundwork — Scientific Research Program
 
 *The set of scientific questions, experiments, and milestones that would turn
-Ontora from a clever product into a serious applied-research program. Not a
+Groundwork from a clever product into a serious applied-research program. Not a
 roadmap of features — a roadmap of what we do not yet know, how we would learn it,
 and what would prove us wrong.*
 
@@ -9,13 +9,13 @@ and what would prove us wrong.*
 
 ## Framing: five kinds of claim (do not blur them)
 
-Almost every argument inside Ontora is really a disagreement about *which kind of
+Almost every argument inside Groundwork is really a disagreement about *which kind of
 claim* is on the table. We separate them permanently:
 
-| Claim type | Form | Verified by | Example in Ontora |
+| Claim type | Form | Verified by | Example in Groundwork |
 |---|---|---|---|
 | **Engineering** | "We can build X that does Y reliably" | Construction + tests | "The AI engine returns evidence-linked DTO proposals." |
-| **Product** | "A user gets value V from X" | Usage, adoption, willingness to pay | "A consultant reaches a diagnosis faster with Ontora." |
+| **Product** | "A user gets value V from X" | Usage, adoption, willingness to pay | "A consultant reaches a diagnosis faster with Groundwork." |
 | **Statistical** | "Metric M differs by Δ ± U" | Powered measurement | "AI interviews surface 1.6× the Tier-3 disclosures of a survey." |
 | **Scientific** | "Mechanism P holds in the world" | Falsifiable, generalizable experiment | "Structured AI questioning causally raises candor." |
 | **Business** | "This creates defensible economic value" | Margin, moat, retention | "The learning loop compounds into a durable advantage." |
@@ -48,7 +48,7 @@ clean:
 
 ## 1. Research thesis
 
-> **Ontora is a bet on two hypotheses, not two facts.**
+> **Groundwork is a bet on two hypotheses, not two facts.**
 > **(H-A, the recovery hypothesis):** decision-grade organizational truth is
 > recoverable from structured testimony at a quality and cost that beats surveys,
 > junior consultants, and digital-exhaust analytics.
@@ -150,14 +150,14 @@ consultant")***
 **Q3 — Value density / decision usefulness *(area 8)***
 - *Why.* "Interesting ≠ commercially useful" (F2). Truth that changes no decision is
   worthless.
-- *Hypothesis.* Ontora's synthesis yields more *evidence-backed findings a
+- *Hypothesis.* Groundwork's synthesis yields more *evidence-backed findings a
   consultant would stake a recommendation on* than a strong LLM-summary baseline,
   and ≥ a human analyst.
 - *Experiment.* Blind panel: senior consultants score each channel's output for
   decision-grade findings, blind to source; the harness's Value-Density metric.
 - *Data.* Matched transcripts; ≥ 3 blind expert raters; adjudication protocol.
-- *Supports.* Ontora ≥ human on decision-grade findings; low generic-summary share.
-- *Falsifies.* Ontora ≈ generic summarizer, or < human → synthesis has no edge.
+- *Supports.* Groundwork ≥ human on decision-grade findings; low generic-summary share.
+- *Falsifies.* Groundwork ≈ generic summarizer, or < human → synthesis has no edge.
 - *Claim.* Product + Scientific. *Testable now.*
 
 **Q15 — Robustness & the abstention question *(area 15; "useful uncertainty vs
@@ -178,7 +178,7 @@ empty ambiguity")***
 - *Claim.* Engineering + Scientific. *Testable now.* Cheap and safety-critical.
 
 **Q7 — Contradiction as signal vs noise *(area 4)***
-- *Why.* Disagreement is either Ontora's richest signal (real conflict) or its
+- *Why.* Disagreement is either Groundwork's richest signal (real conflict) or its
   worst noise (error). Mislabeling it corrupts everything downstream.
 - *Hypothesis.* The system can classify a contradiction as conflict / variation /
   complementarity / error better than chance and better than a naive LLM.
@@ -207,7 +207,7 @@ empty ambiguity")***
 **Q6 — Consultant validation as reward signal *(area 7; "does validation improve
 the policy measurably")***
 - *Why.* This is the crux of H-B. If validation data cannot improve the policy, the
-  compounding moat does not exist and Ontora is a static tool.
+  compounding moat does not exist and Groundwork is a static tool.
 - *Hypothesis.* A policy trained/selected on validated-finding labels beats the
   frozen baseline on held-out engagements, above the noise floor.
 - *Experiment.* Once ≥ N validated engagements exist, offline policy evaluation:
@@ -317,23 +317,23 @@ violating privacy")***
 - *Falsifies.* Causal claims no better than correlation → do not sell causal claims.
 - *Claim.* Scientific. **Likely not answerable at current N/setup** — causal
   inference from observational testimony without intervention is fundamentally hard.
-  *State this honestly to buyers: today Ontora surfaces causal hypotheses, not
+  *State this honestly to buyers: today Groundwork surfaces causal hypotheses, not
   causal proofs.*
 
 **Q12 — Economic decision-confidence *(area 12)***
-- *Why.* The ultimate value claim: decisions made on Ontora's output beat decisions
+- *Why.* The ultimate value claim: decisions made on Groundwork's output beat decisions
   made without it, at a knowable confidence.
 - *Hypothesis.* Recommendations carry confidence that predicts realized economic
   outcome.
 - *Experiment.* Track recommendation → decision → outcome over engagements; compare
   to a counterfactual/holdout baseline.
 - *Data.* Many decisions with measurable outcomes. **Slow, small-N, confounded.**
-- *Supports.* Confidence predicts outcome; Ontora-informed decisions win.
+- *Supports.* Confidence predicts outcome; Groundwork-informed decisions win.
 - *Falsifies.* No predictive link → economic confidence is unfounded.
 - *Claim.* Business + Scientific. **Not testable at meaningful power for years.**
 
 **Q17 — Cross-industry generalization *(area; "does the loop generalize")***
-- *Why.* Determines whether Ontora is a market or a niche.
+- *Why.* Determines whether Groundwork is a market or a niche.
 - *Hypothesis.* The core loop's advantage holds across verticals/cultures after
   minimal adaptation.
 - *Experiment.* Replicate the Tier-A battery in a second, then third, distinct
@@ -376,8 +376,8 @@ With accumulated validated data:
 4. **Calibration against interim then early real outcomes (Q4).**
 5. **Standpoint modeling (Q9)** on real role-tagged data.
 
-Deliverable: evidence that Ontora *improves with data* and that skill *transfers
-across clients* — or a clear refutation that reclassifies Ontora as a
+Deliverable: evidence that Groundwork *improves with data* and that skill *transfers
+across clients* — or a clear refutation that reclassifies Groundwork as a
 (valuable) static product. **Gate:** if Q6 and Q13 both fail, H-B is dead; stop
 funding the research lab and become a product company (see §9).
 
@@ -395,7 +395,7 @@ Pursued only if H-B holds:
 - **Cross-industry generalization (Q17).**
 - **Synthesis:** a *validated organizational world model* whose beliefs are
   calibrated against reality over time — the genuine research contribution, and the
-  thing that would make Ontora a lab, not a tool. Only credible after the above.
+  thing that would make Groundwork a lab, not a tool. Only credible after the above.
 
 ---
 
@@ -425,7 +425,7 @@ instrument every engagement to capture the four-layer dataset so Q6/Q13 become
 answerable the moment volume exists. **The moat is bought in Year 1 by
 instrumentation and proven in Year 2–3 by these two experiments.**
 
-## 9. Results that would make Ontora more product-oriented (less research)
+## 9. Results that would make Groundwork more product-oriented (less research)
 
 Any of these means: stop funding the lab, ship the tool, compete on trust/workflow.
 
@@ -471,7 +471,7 @@ of realized outcomes and are confounded at small N.
 
 **Likely unanswerable with the current setup:** Q11 (causal upgrading) at small N
 without interventions — causal inference from observational testimony is
-fundamentally hard; today Ontora produces causal *hypotheses*, not proofs, and we
+fundamentally hard; today Groundwork produces causal *hypotheses*, not proofs, and we
 should sell it as such. A fully general Q17 is premature until one vertical works.
 
 **Currently unfalsifiable and therefore not yet science:** large parts of the
@@ -484,7 +484,7 @@ legitimate *engineering* scaffolding — but must not be described as validated
 
 ## Closing note
 
-The intellectually honest position is that Ontora today has **strong engineering
+The intellectually honest position is that Groundwork today has **strong engineering
 claims, plausible product claims, almost no validated statistical claims, no
 established scientific claims, and an unproven business claim.** That is not an
 indictment — it is a normal starting point for an applied-research company. What
@@ -492,5 +492,5 @@ would be an indictment is pretending otherwise. This program's discipline is
 simple: **do not promote a claim to a higher type than the evidence supports, run
 the cheapest experiment that could kill each hypothesis first, and be genuinely
 willing to conclude that the compounding thesis — the entire scientific ambition —
-is false, and that Ontora is a good tool rather than a new science.** We will know
+is false, and that Groundwork is a good tool rather than a new science.** We will know
 which within three years. Most companies never let themselves find out.

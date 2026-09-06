@@ -5,7 +5,7 @@ that is what makes the CLI, the eval harness, the fuzz audit and the synthetic t
 usable anywhere, and it is what CI relies on.
 
 Adding the web app broke it: ``ai_engine/webapp/__init__.py`` eagerly imported
-``.app``, which imports FastAPI, so merely importing ``ai_engine.webapp.ledger``
+``.app``, which imports FastAPI, so merely importing ``ai_engine.persistence.ledger``
 required an optional dependency and CI went red.
 
 These tests run in a subprocess with the optional packages made unimportable, which is
@@ -46,7 +46,7 @@ CORE_MODULES = (
     "ai_engine.llm.retry",
     # The web packages' non-web parts must not drag FastAPI in.
     "ai_engine.webapp",
-    "ai_engine.webapp.ledger",
+    "ai_engine.persistence.ledger",
     "ai_engine.employee",
 )
 

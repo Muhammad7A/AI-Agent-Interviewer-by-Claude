@@ -22,7 +22,7 @@ from .runner import run_suite
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ontora evaluation harness")
+    parser = argparse.ArgumentParser(description="Groundwork evaluation harness")
     parser.add_argument("--repeats", type=int, default=1,
                         help="runs per case (use >1 with a live model to see the spread)")
     parser.add_argument("--write", action="store_true", help="write the Markdown report to the data dir")

@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..persistence.event_log import find_log, read_events
+from .event_log import find_log, read_events
 
 
 @dataclass(frozen=True)

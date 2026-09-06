@@ -203,17 +203,17 @@ class ProductionPostureTest(unittest.TestCase):
         self.assertIn("PLAINTEXT", banner)
 
     def test_runtime_reads_the_environment(self):
-        prior = os.environ.get("ONTORA_ENV")
+        prior = os.environ.get("GROUNDWORK_ENV")
         try:
-            os.environ["ONTORA_ENV"] = "production"
+            os.environ["GROUNDWORK_ENV"] = "production"
             self.assertTrue(Settings().is_production)
-            os.environ["ONTORA_ENV"] = "dev"
+            os.environ["GROUNDWORK_ENV"] = "dev"
             self.assertFalse(Settings().is_production)
         finally:
             if prior is None:
-                os.environ.pop("ONTORA_ENV", None)
+                os.environ.pop("GROUNDWORK_ENV", None)
             else:
-                os.environ["ONTORA_ENV"] = prior
+                os.environ["GROUNDWORK_ENV"] = prior
 
 
 if __name__ == "__main__":

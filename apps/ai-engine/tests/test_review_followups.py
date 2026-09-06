@@ -19,6 +19,7 @@ from ai_engine.confidence.scorer import UNKNOWN_COHORT_CAP, score_member
 from ai_engine.evidence.entailment import (Entailment, HeuristicEntailmentChecker,
                                            _severe_stem, apply_entailment)
 from ai_engine.evidence.model import Claim, ClaimType, GroundedEvidence
+from ai_engine.config import ENV_VAR
 from ai_engine.persistence.crypto import NullCipher, cipher_available
 from ai_engine.persistence.event_log import (EventLog, TamperedEventLog,
                                              TruncatedEventLog, head_path,
@@ -156,16 +157,16 @@ class IdentityStateTest(unittest.TestCase):
             p.pseudonym("dana@corp.com"))
 
     def test_production_refuses_plaintext_identity_state(self):
-        previous = os.environ.get("ONTORA_ENV")
-        os.environ["ONTORA_ENV"] = "production"
+        previous = os.environ.get(ENV_VAR)
+        os.environ[ENV_VAR] = "production"
         try:
             with self.assertRaises(RuntimeError):
                 Pseudonymizer().save_state(self.dir, NullCipher())
         finally:
             if previous is None:
-                os.environ.pop("ONTORA_ENV", None)
+                os.environ.pop(ENV_VAR, None)
             else:
-                os.environ["ONTORA_ENV"] = previous
+                os.environ[ENV_VAR] = previous
 
     def test_corrupt_state_raises_rather_than_re_salting(self):
         """Silently starting fresh would re-issue every pseudonym."""

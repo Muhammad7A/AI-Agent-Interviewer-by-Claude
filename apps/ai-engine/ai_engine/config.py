@@ -14,7 +14,7 @@ excellent for testing and a liability in a deployment:
     plaintext.
 
 Both are correct for local development and unacceptable in production, so the
-difference is made explicit: ``ONTORA_ENV=production`` refuses to start unless a real
+difference is made explicit: ``GROUNDWORK_ENV=production`` refuses to start unless a real
 model and a real cipher are configured. Failing loudly at startup is the only safe
 version of this — a silent mock is indistinguishable from a working system until
 someone reads a transcript that nobody ever said.
@@ -28,7 +28,7 @@ from pathlib import Path
 
 from .persistence.crypto import KEY_ENV, Cipher, cipher_available, make_cipher
 
-# Default to a current Claude model; override with ONTORA_MODEL.
+# Default to a current Claude model; override with GROUNDWORK_MODEL.
 #
 # This default must be a *real* model id. The previous value named a model that
 # does not exist, so the first live call returned 404 — and because 404 is
@@ -40,11 +40,11 @@ from .persistence.crypto import KEY_ENV, Cipher, cipher_available, make_cipher
 #
 # Sonnet rather than the largest model: an engagement is roughly four hundred
 # calls, and the deterministic ones (tagging, entailment, relation) are
-# classification work. Set ONTORA_MODEL to a larger model if interview cognition
+# classification work. Set GROUNDWORK_MODEL to a larger model if interview cognition
 # needs it — that is a one-variable change.
-DEFAULT_MODEL = os.environ.get("ONTORA_MODEL", "claude-sonnet-5")
+DEFAULT_MODEL = os.environ.get("GROUNDWORK_MODEL", "claude-sonnet-5")
 
-ENV_VAR = "ONTORA_ENV"
+ENV_VAR = "GROUNDWORK_ENV"
 
 
 class Runtime(str, Enum):
@@ -59,7 +59,7 @@ class ConfigurationError(RuntimeError):
 
 
 def runtime_from_env() -> Runtime:
-    """Parse ``ONTORA_ENV`` — and refuse an unrecognized value.
+    """Parse ``GROUNDWORK_ENV`` — and refuse an unrecognized value.
 
     The whole point of the production posture is refusing unsafe startup, so a
     typo'd value ("produnction") must be an error, not silently mean dev: a guard
@@ -88,18 +88,37 @@ class Settings:
     runtime: Runtime = field(default_factory=runtime_from_env)
     #: Reuse deterministic derived results across page views. Off only for
     #: benchmarking what an uncached run actually costs.
-    cache_derived: bool = os.environ.get("ONTORA_CACHE", "1") not in ("0", "false", "no")
-    max_turns: int = int(os.environ.get("ONTORA_MAX_TURNS", "14"))
-    temperature: float = float(os.environ.get("ONTORA_TEMPERATURE", "0.4"))
-    data_dir: Path = Path(os.environ.get("ONTORA_DATA_DIR", "data/interviews"))
+    cache_derived: bool = os.environ.get("GROUNDWORK_CACHE", "1") not in ("0", "false", "no")
+    max_turns: int = int(os.environ.get("GROUNDWORK_MAX_TURNS", "14"))
+    temperature: float = float(os.environ.get("GROUNDWORK_TEMPERATURE", "0.4"))
+    data_dir: Path = Path(os.environ.get("GROUNDWORK_DATA_DIR", "data/interviews"))
     #: An oversized answer would be appended to the transcript verbatim and sent
     #: as part of every later model call — a multi-MB paste guarantees a permanent
     #: request failure on every future turn, wedging the interview with no way to
     #: retract the answer. Capped at the web layer, where the input arrives.
-    max_answer_chars: int = int(os.environ.get("ONTORA_MAX_ANSWER_CHARS", "20000"))
+    max_answer_chars: int = int(os.environ.get("GROUNDWORK_MAX_ANSWER_CHARS", "20000"))
+    #: When set, the consultant workspace demands HTTP Basic with this password,
+    #: and production refuses to start without one. Unset keeps the localhost
+    #: no-auth Year-0/1 posture; the employee surface's auth is invitation tokens.
+    operator_password: str | None = field(
+        default_factory=lambda: os.environ.get("GROUNDWORK_OPERATOR_PASSWORD") or None)
+    #: Which live adapter to build. Explicit via GROUNDWORK_PROVIDER ("anthropic"
+    #: | "gemini"); otherwise inferred — an Anthropic key wins, then Gemini when
+    #: GOOGLE_APPLICATION_CREDENTIALS is set. Empty means mock mode.
+    provider: str = field(default_factory=lambda: (
+        (os.environ.get("GROUNDWORK_PROVIDER") or "").strip().lower()
+        or ("anthropic" if os.environ.get("ANTHROPIC_API_KEY")
+            else ("gemini" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+                  else ""))))
+    gemini_model: str = os.environ.get("GROUNDWORK_GEMINI_MODEL", "gemini-2.5-flash")
+    gemini_project: str | None = field(
+        default_factory=lambda: os.environ.get("GROUNDWORK_GEMINI_PROJECT") or None)
+    gemini_location: str = os.environ.get("GROUNDWORK_GEMINI_LOCATION", "us-central1")
 
     @property
     def has_live_model(self) -> bool:
+        if self.provider == "gemini":
+            return True  # ADC is configured via the environment; preflight proves it
         return bool(self.api_key)
 
     @property
@@ -121,9 +140,16 @@ class Settings:
         problems: list[str] = []
         if not self.has_live_model:
             problems.append(
-                "no ANTHROPIC_API_KEY: cognition would silently fall back to the "
-                "scripted mock interviewer, serving fabricated interviews to real "
-                "people and recording them as genuine testimony"
+                "no live model configured: set ANTHROPIC_API_KEY, or "
+                "GOOGLE_APPLICATION_CREDENTIALS (with GROUNDWORK_PROVIDER=gemini) — "
+                "otherwise cognition would silently fall back to the scripted mock "
+                "interviewer, serving fabricated interviews to real people and "
+                "recording them as genuine testimony"
+            )
+        if self.provider == "gemini" and not self.gemini_project:
+            problems.append(
+                "GROUNDWORK_GEMINI_PROJECT is not set: the Vertex AI endpoint is "
+                "per-project, so the Gemini adapter cannot be built without it"
             )
         if not self.store_key:
             problems.append(
@@ -157,7 +183,8 @@ class Settings:
 
     def posture_banner(self) -> str:
         """One line stating exactly what the operator is running."""
-        model = f"LIVE {self.model}" if self.has_live_model else "MOCK (no API key)"
+        model = (f"LIVE {self.gemini_model if self.provider == 'gemini' else self.model}"
+                 if self.has_live_model else "MOCK (no live model)")
         store = "encrypted" if (self.store_key and cipher_available()) else "PLAINTEXT"
         return f"env={self.runtime.value}  cognition={model}  storage-at-rest={store}"
 
@@ -189,17 +216,12 @@ def preflight_model(settings: Settings | None = None) -> str:
     settings = settings or load_settings()
     if not settings.has_live_model:
         return "mock"
-    from .llm.client import AnthropicClient
     from .llm.retry import RetryPolicy
 
     # One attempt: a wrong model id is permanent, and an overloaded API should not
     # hold up startup for four backoffs. A transient failure here is reported the
     # same way — the operator retries the command.
-    client = AnthropicClient(
-        model=settings.model,
-        api_key=settings.api_key,
-        policy=RetryPolicy(attempts=1),
-    )
+    client = _build_provider_client(settings, policy=RetryPolicy(attempts=1))
     try:
         client.complete(system="Reply with the single word: ok.",
                         messages=[{"role": "user", "content": "ping"}],
@@ -207,10 +229,27 @@ def preflight_model(settings: Settings | None = None) -> str:
     except Exception as exc:
         raise ModelUnavailable(
             f"the configured model {settings.model!r} did not answer a trivial "
-            f"request ({type(exc).__name__}: {exc}). Check ONTORA_MODEL names a "
+            f"request ({type(exc).__name__}: {exc}). Check GROUNDWORK_MODEL names a "
             f"current model and that ANTHROPIC_API_KEY is valid."
         ) from exc
     return settings.model
+
+
+def _build_provider_client(settings: Settings, policy=None):
+    """The live adapter for ``settings.provider`` — the only place it is chosen."""
+    if settings.provider == "gemini":
+        from .llm.gemini_client import GeminiClient
+
+        return GeminiClient(
+            model=settings.gemini_model,
+            project=settings.gemini_project or "",
+            location=settings.gemini_location,
+            policy=policy,
+        )
+    from .llm.client import AnthropicClient
+
+    return AnthropicClient(model=settings.model, api_key=settings.api_key,
+                           policy=policy)
 
 
 def get_llm_client(settings: Settings | None = None):
@@ -224,16 +263,18 @@ def get_llm_client(settings: Settings | None = None):
     if not settings.has_live_model:
         if settings.is_production:
             raise ConfigurationError(
-                f"{ENV_VAR}=production requires ANTHROPIC_API_KEY; refusing to fall "
-                f"back to the scripted mock interviewer."
+                f"{ENV_VAR}=production requires a live model (ANTHROPIC_API_KEY, or "
+                f"GROUNDWORK_PROVIDER=gemini with GOOGLE_APPLICATION_CREDENTIALS); "
+                f"refusing to fall back to the scripted mock interviewer."
             )
         return None
     from .llm.cache import wrap_if_caching
-    from .llm.client import AnthropicClient
 
-    client = AnthropicClient(model=settings.model, api_key=settings.api_key)
+    client = _build_provider_client(settings)
     # Deterministic calls (tagging, entailment, relation classification) are served
     # from cache; the interview loop samples and is never cached. Wrapping here means
     # every caller benefits without knowing the cache exists.
-    return wrap_if_caching(client, settings.derived_store(), model=settings.model,
+    cache_model = (settings.gemini_model if settings.provider == "gemini"
+                   else settings.model)
+    return wrap_if_caching(client, settings.derived_store(), model=cache_model,
                            enabled=settings.cache_derived)

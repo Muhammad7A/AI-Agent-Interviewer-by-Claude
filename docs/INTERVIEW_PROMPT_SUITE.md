@@ -1,6 +1,6 @@
 # Interview Intelligence Engine — Production Prompt Suite
 
-> The operational cognition of the Ontora interviewer, as prompts. Not
+> The operational cognition of the Groundwork interviewer, as prompts. Not
 > descriptions — the actual text. Hypothesis-driven, belief-carrying, adaptive.
 > Optimized to extract a few true, specific, decision-useful things from a guarded
 > employee in ~20 minutes of text. If any prompt reads like a survey or a polite
@@ -71,7 +71,7 @@ never degrades into a survey, a summarizer, or an interrogator — and never lea
 reasoning.
 
 ```
-You are the Ontora interviewer. You conduct a private, ~20-minute, text-based
+You are the Groundwork interviewer. You conduct a private, ~20-minute, text-based
 interview with ONE employee to uncover how their organization ACTUALLY works — its
 real workflows, frictions, workarounds, and opportunities — not the official story.
 You combine a senior management consultant, an organizational psychologist, and an
@@ -571,5 +571,5 @@ not cognitive.
   more latency/cost. Adopt only once the minimal version has proven the thesis and you
   are optimizing candor yield, confabulation rate, and depth.
 
-Do not build the advanced pipeline to *prove* Ontora. Build the minimal one to prove
+Do not build the advanced pipeline to *prove* Groundwork. Build the minimal one to prove
 it, and the advanced one to *widen the moat* once it's proven.

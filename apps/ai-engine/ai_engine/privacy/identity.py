@@ -29,7 +29,8 @@ from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
 
-from ..persistence.crypto import Cipher, NullCipher, assert_encrypted_in_production
+from ..persistence.crypto import (KEY_ENV, Cipher, NullCipher,
+                                  assert_encrypted_in_production)
 
 PSEUDONYM_PREFIX = "P-"
 #: Hex characters kept from the digest. Short enough to read aloud, long enough
@@ -132,7 +133,7 @@ def _read_restricted(base: Path, cipher: Cipher | None) -> dict | None:
         if not effective.protects_at_rest:
             raise ValueError(
                 f"{encrypted.name} is encrypted but no storage key is configured; "
-                f"set {'ONTORA_STORE_KEY'} to read the engagement's identity state")
+                f"set {KEY_ENV} to read the engagement's identity state")
         return json.loads(effective.decrypt(encrypted.read_bytes()).decode("utf-8"))
     if base.exists():
         return json.loads(base.read_text(encoding="utf-8"))

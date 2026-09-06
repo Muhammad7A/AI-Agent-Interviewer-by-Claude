@@ -23,8 +23,10 @@ from ai_engine.persistence.transcript_store import TranscriptStore
 
 
 def _settings(data_dir: Path, **kw) -> Settings:
-    return Settings(api_key=None, store_key=None, runtime=Runtime.DEV,
-                    data_dir=data_dir, **kw)
+    kw.setdefault("api_key", None)
+    kw.setdefault("store_key", None)
+    kw.setdefault("runtime", Runtime.DEV)
+    return Settings(data_dir=data_dir, **kw)
 
 
 class _FailingLLM:
@@ -64,11 +66,13 @@ class ConsultantModelFailureTest(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.data_dir = Path(self._tmp.name)
-        import ai_engine.webapp.app as webapp_app
+        # The use-cases live in the application layer now — that is the seam to
+        # patch; the webapp only parses forms and renders HTML.
+        import ai_engine.application.service as service_mod
 
-        self._module = webapp_app
-        self._original_client = webapp_app.get_llm_client
-        self._original_engine = webapp_app.InterviewEngine
+        self._module = service_mod
+        self._original_client = service_mod.get_llm_client
+        self._original_engine = service_mod.InterviewEngine
         self.addCleanup(self._restore)
 
     def _restore(self):
@@ -77,17 +81,19 @@ class ConsultantModelFailureTest(unittest.TestCase):
 
     def test_start_survives_a_dead_model(self):
         self._module.get_llm_client = lambda s: _FailingLLM()
-        client = TestClient(self._module.create_app(_settings(self.data_dir)))
+        from ai_engine.webapp.app import create_app
+
+        client = TestClient(create_app(_settings(self.data_dir)))
         r = client.post("/interviews/new", data={"participant": "Dana", "mode": "manual"},
                         follow_redirects=False)
         self.assertEqual(r.status_code, 503)
         self.assertIn("temporarily unavailable", r.text)
 
     def test_a_failed_next_question_pauses_and_recovers(self):
-        import ai_engine.interview.engine as engine_mod
+        from ai_engine.webapp.app import create_app
 
         self._module.InterviewEngine = _FlakyEngine
-        client = TestClient(self._module.create_app(_settings(self.data_dir)))
+        client = TestClient(create_app(_settings(self.data_dir)))
         r = client.post("/interviews/new", data={"participant": "Dana", "mode": "manual"},
                         follow_redirects=False)
         interview_id = r.headers["location"].rsplit("/", 1)[-1]
@@ -221,3 +227,49 @@ class PreflightAtStartupTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(_HAS_CLIENT, "requires fastapi and httpx")
+class OperatorAuthTest(unittest.TestCase):
+    """GROUNDWORK_OPERATOR_PASSWORD turns on HTTP Basic for every route."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.data_dir = Path(self._tmp.name)
+        from ai_engine.webapp.app import create_app
+
+        self._create_app = create_app
+
+    def test_open_by_default_in_dev(self):
+        client = TestClient(self._create_app(_settings(self.data_dir)))
+        self.assertEqual(client.get("/").status_code, 200)
+
+    def test_password_set_demands_basic_auth(self):
+        client = TestClient(self._create_app(
+            _settings(self.data_dir, operator_password="s3cret")))
+        r = client.get("/")
+        self.assertEqual(r.status_code, 401)
+        self.assertIn("WWW-Authenticate", r.headers)
+        self.assertIn("testimony", r.text)
+
+        # Browsers prompt natively via WWW-Authenticate; the right password passes.
+        ok = TestClient(self._create_app(
+            _settings(self.data_dir, operator_password="s3cret"))).get(
+            "/", auth=("op", "s3cret"))
+        self.assertEqual(ok.status_code, 200)
+        # and a wrong password still fails
+        r = TestClient(self._create_app(
+            _settings(self.data_dir, operator_password="s3cret"))).get(
+            "/", auth=("op", "wrong"))
+        self.assertEqual(r.status_code, 401)
+
+    def test_production_refuses_to_start_without_a_password(self):
+        from ai_engine.config import ConfigurationError
+
+        s = _settings(self.data_dir, operator_password=None,
+                      api_key="sk-test", store_key="k",
+                      runtime=Runtime.PRODUCTION)
+        with self.assertRaises(ConfigurationError) as ctx:
+            self._create_app(s)
+        self.assertIn("OPERATOR_PASSWORD", str(ctx.exception))

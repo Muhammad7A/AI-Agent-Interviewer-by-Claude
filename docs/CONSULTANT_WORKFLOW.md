@@ -1,7 +1,7 @@
-# The Consultant Operating Model — Ontora
+# The Consultant Operating Model — Groundwork
 
 > The human operating system around the product. Not screens, not code — how a
-> consultant, analyst, or transformation lead actually uses Ontora end-to-end to
+> consultant, analyst, or transformation lead actually uses Groundwork end-to-end to
 > deliver value. Designed for *real consulting behavior*, not fantasy product
 > behavior. The test it must pass: after one engagement, the consultant says *"that
 > saved me a week, I trusted the output, and I looked smarter in the room."*
@@ -14,14 +14,14 @@ A discovery consultant's job was never "gather and read everything." It is: **fo
 defensible point of view about how the organization actually works, evidence it,
 pressure-test it, and use it to move an executive to a decision.**
 
-Ontora **collapses the labor and amplifies the judgment.** It does the gathering
+Groundwork **collapses the labor and amplifies the judgment.** It does the gathering
 (scheduling, interviewing, note-taking, first-pass synthesis) so the consultant's
 hours move to the 20% that only a human can do — deciding what's true, what matters,
 what's political, and what story drives action.
 
 **The effort curve — where the week goes.** (~15-interview engagement, illustrative.)
 
-| Phase | Manual today | With Ontora | What changed |
+| Phase | Manual today | With Groundwork | What changed |
 |---|---|---|---|
 | Setup & framing | ~6h | ~6h | unchanged — it's judgment |
 | Scheduling & interviewing | ~25h | ~2h (monitor) | **collapsed** |
@@ -171,7 +171,7 @@ present; handle pushback. *AI assist:* behind the scenes — instant evidence ba
 story, the credibility. *In:* the report. *Out:* a decision (or the next step).
 *Decision:* how hard to push each recommendation. *Failure:* being unable to defend a
 finding live (mitigated by having inspected evidence in Stages 7-8). **The consultant
-is the face; Ontora is the notebook. They say "we interviewed 20 people and here's what
+is the face; Groundwork is the notebook. They say "we interviewed 20 people and here's what
 we learned," never "the AI found this."**
 
 **Stage 13 · Post-engagement learning.** *Goal:* capture what worked, at near-zero
@@ -244,7 +244,7 @@ they won't do it — so it must be a byproduct of work they already do.**
 
 ## 7. Handoff to executives
 
-- The **consultant is the face; Ontora is the notebook.** The exec never logs in and
+- The **consultant is the face; Groundwork is the notebook.** The exec never logs in and
   never hears "the AI decided."
 - The **artifact** is the report + an evidence backup the consultant can summon live.
 - The **anonymity architecture holds:** the exec gets anonymized, aggregated,
@@ -339,7 +339,7 @@ engine) · sample suggestions (a heuristic) · decision-outcome tracking (a manu
 
 ---
 
-**The operating system in one line:** Ontora does the gathering; the consultant does the
+**The operating system in one line:** Groundwork does the gathering; the consultant does the
 judging and the persuading; the evidence is always one click away; nothing reaches the
 client unvalidated; and every ordinary action the consultant takes quietly makes the
 engine smarter.

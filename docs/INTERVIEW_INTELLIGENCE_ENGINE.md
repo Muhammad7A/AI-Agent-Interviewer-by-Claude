@@ -1,6 +1,6 @@
 # The Interview Intelligence Engine (IIE)
 
-> **This is Ontora's primary intellectual property.** Everything else — graphs,
+> **This is Groundwork's primary intellectual property.** Everything else — graphs,
 > insights, drift, reports — is downstream refinement of what this engine
 > extracts. If a 20-minute interview is shallow, nothing downstream can save it.
 > This document designs the *cognition* of the interviewer, not its plumbing.
@@ -309,7 +309,7 @@ produced signal vs. dead air.
 - **Learn a context-conditioned question-effectiveness model** (role × industry ×
   candor × topic → which framings yield specifics and validated insight).
 - **Grow the pattern library** by mining recurring, validated dysfunction patterns
-  across companies — Ontora gets sharper with every engagement.
+  across companies — Groundwork gets sharper with every engagement.
 - **Calibrate confidence** — are our "high-confidence" hypotheses actually the ones
   that validate? Recalibrate if not.
 - **Refine the candor model** — which framings unlock which respondent types.
@@ -372,4 +372,4 @@ competitors cannot copy by buying the same model — is the accumulated,
 validation-trained knowledge of **which questions, in which context, to which kind
 of person, actually surface truth that consultants confirm.** The interview engine
 is not a prompt. It is a learning system whose asset is *earned conversational
-judgment*. That is Ontora.
+judgment*. That is Groundwork.

@@ -24,13 +24,13 @@ from .transcript.model import Transcript
 
 def _print_exchange(speaker: str, text: str) -> None:
     if speaker == "interviewer":
-        print(f"\n\033[1;36montora>\033[0m {text}")
+        print(f"\n\033[1;36mgroundwork>\033[0m {text}")
     else:
         print(f"\033[0;33msubject>\033[0m {text}")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ontora interview loop")
+    parser = argparse.ArgumentParser(description="Groundwork interview loop")
     parser.add_argument("--simulated", action="store_true", help="run against a simulated persona")
     parser.add_argument("--candor", choices=CANDOR_LEVELS, default="neutral",
                         help="simulated persona candor level (default: neutral)")
@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     max_turns = args.max_turns or settings.max_turns
     llm = get_llm_client(settings)
 
-    print(f"# Ontora interview loop — {settings.posture_banner()}")
+    print(f"# Groundwork interview loop — {settings.posture_banner()}")
     if not settings.is_production and llm is None:
         print("#   ⚠ mock cognition: answers are scripted, not a real interview")
 

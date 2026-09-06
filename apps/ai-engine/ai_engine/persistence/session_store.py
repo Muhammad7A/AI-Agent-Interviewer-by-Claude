@@ -110,6 +110,20 @@ class SessionStore:
         return path
 
     def load(self, token: str) -> SavedSession | None:
+        """Load a draft, degrading deliberately on corruption.
+
+        Two failure classes get different treatment:
+
+          * **Readable but invalid** (bad JSON, wrong schema, malformed
+            transcript): the participant would be wedged by it forever, so the
+            corrupt file is removed and they start fresh. Their in-progress
+            answers are lost — that is the documented draft-expiry failure
+            mode, triggered early.
+          * **Unreadable** (decrypt failure — usually a wrong/changed storage
+            key): the file is KEPT, because the draft is recoverable the moment
+            the right key is back. Returning None here without deleting is what
+            makes a keying mistake non-destructive.
+        """
         for suffix, encrypted in ((_ENCRYPTED, True), (_PLAIN, False)):
             try:
                 path = self._dir / f"{token}{suffix}"
@@ -120,8 +134,14 @@ class SessionStore:
             try:
                 blob = path.read_bytes()
                 raw = self._cipher.decrypt(blob) if encrypted else blob
+            except Exception:
+                # Unreadable, not corrupt: keep the file. A keying error must
+                # not destroy a recoverable draft.
+                return None
+            try:
                 data = json.loads(raw.decode("utf-8"))
                 if data.get("schema") != SCHEMA:
+                    path.unlink()
                     return None
                 transcript = transcript_from_dict(data["transcript"])
                 # A stored draft is by definition unfinalized; restore it that way so
@@ -136,6 +156,9 @@ class SessionStore:
                     updated_at=datetime.fromisoformat(data["updated_at"]),
                 )
             except Exception:
+                # Readable but invalid: the participant cannot be wedged by
+                # their own corrupt draft forever. Remove it, start fresh.
+                path.unlink(missing_ok=True)
                 return None
         return None
 

@@ -34,10 +34,18 @@ class DemoResult:
     engagement_id: str
     engagement_name: str
     interviews: list[dict] = field(default_factory=list)
+    #: Interviews that failed mid-flight (model down, store error), isolated
+    #: per interview. The pool used to let the first exception escape: a 500
+    #: page, with the engagement holding a random half of the interviews.
+    failures: list[dict] = field(default_factory=list)
 
     @property
     def claims(self) -> int:
         return sum(i["claims"] for i in self.interviews)
+
+    @property
+    def all_failed(self) -> bool:
+        return bool(self.failures) and not self.interviews
 
 
 def run_demo_engagement(
@@ -68,28 +76,42 @@ def run_demo_engagement(
         transcript = Transcript(engagement_id=engagement["id"],
                                 tenant_id="tenant-demo")
         transcript.interview_id = alias
-        engine = InterviewEngine(llm=llm, max_turns=settings.max_turns)
-        subject = SimulatedInterviewee(persona, llm=llm)
-        result = run_interview(
-            engine=engine, subject=subject,
-            transcript=transcript,
-            event_log=EventLog(settings.data_dir, transcript.id,
-                               layer="testimony", cipher=settings.cipher()),
-            max_turns=settings.max_turns,
-        )
-        # Write-once: each thread stores its own fresh transcript.
-        TranscriptStore(settings.data_dir, settings.cipher()).save(result.transcript)
+        testimony = EventLog(settings.data_dir, transcript.id,
+                             layer="testimony", cipher=settings.cipher())
+        try:
+            engine = InterviewEngine(llm=llm, max_turns=settings.max_turns)
+            subject = SimulatedInterviewee(persona, llm=llm)
+            result = run_interview(
+                engine=engine, subject=subject,
+                transcript=transcript,
+                event_log=testimony,
+                max_turns=settings.max_turns,
+            )
+            # Write-once: each thread stores its own fresh transcript.
+            TranscriptStore(settings.data_dir, settings.cipher()).save(
+                result.transcript)
 
-        # The auto-sim reviewer labels its own verdicts through the same gate a
-        # human uses, into the real validation ledger — the synthesis reads
-        # verdicts back from there, so a demo run is indistinguishable in
-        # structure from a hand-reviewed one (and the ledger says which is which).
-        tagging = EvidenceTagger(llm=llm).tag(result.transcript)
-        gate = ValidationGate(
-            AutoValidator.VALIDATOR,
-            EventLog(settings.data_dir, transcript.id, layer="validation",
-                     cipher=settings.cipher()))
-        findings = validate_claims(gate, tagging.claims, AutoValidator().decide)
+            # The auto-sim reviewer labels its own verdicts through the same gate a
+            # human uses, into the real validation ledger — the synthesis reads
+            # verdicts back from there, so a demo run is indistinguishable in
+            # structure from a hand-reviewed one (and the ledger says which is which).
+            tagging = EvidenceTagger(llm=llm).tag(result.transcript)
+            gate = ValidationGate(
+                AutoValidator.VALIDATOR,
+                EventLog(settings.data_dir, transcript.id, layer="validation",
+                         cipher=settings.cipher()))
+            findings = validate_claims(gate, tagging.claims, AutoValidator().decide)
+        except Exception as exc:
+            # Isolate the failure to this interview. The testimony events
+            # written so far belong to an interview that never completed and
+            # was never consented to — they go with it (best effort).
+            try:
+                testimony.path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            return {"participant": persona.name, "pseudonym": alias,
+                    "transcript_id": None, "claims": 0, "validated": 0,
+                    "error": f"{type(exc).__name__}: {exc}"}
         return {
             "participant": persona.name,
             "pseudonym": alias,
@@ -99,10 +121,13 @@ def run_demo_engagement(
         }
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        interviews = list(pool.map(interview_one, assignments))
+        outcomes = list(pool.map(interview_one, assignments))
+    interviews = [o for o in outcomes if "error" not in o]
+    failures = [o for o in outcomes if "error" in o]
 
     return DemoResult(engagement_id=engagement["id"],
-                      engagement_name=engagement["name"], interviews=interviews)
+                      engagement_name=engagement["name"], interviews=interviews,
+                      failures=failures)
 
 
 def _personas():

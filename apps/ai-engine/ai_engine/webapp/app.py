@@ -282,6 +282,17 @@ def create_app(settings: Settings | None = None,
         from ..application.demo import run_demo_engagement
 
         result = run_demo_engagement(svc)
+        if result.all_failed:
+            # Every interview failed (model down). Nothing was persisted except
+            # an empty engagement; the consultant can simply retry.
+            posture, warn = svc.posture()
+            detail = result.failures[0].get("error", "unknown error")
+            return HTMLResponse(views.message(
+                title="Demo could not run",
+                text=f"All {len(result.failures)} interviews failed — the model "
+                     f"was unreachable ({detail.split(':')[0]}). Nothing was "
+                     "recorded. Try again when the model is back.",
+                posture=posture, warn=warn), status_code=503)
         return RedirectResponse(
             f"/engagements/{result.engagement_id}/deliverables", status_code=303)
 

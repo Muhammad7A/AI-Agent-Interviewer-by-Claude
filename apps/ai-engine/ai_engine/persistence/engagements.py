@@ -29,10 +29,35 @@ class EngagementStore:
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
-            return {"schema": SCHEMA, "engagements": {}}
+            return self._quarantine_corrupt()
         if data.get("schema") != SCHEMA:
-            return {"schema": SCHEMA, "engagements": {}}
+            return self._quarantine_corrupt()
         return data
+
+    def _quarantine_corrupt(self) -> dict:
+        """A corrupt index is preserved, never silently reset.
+
+        The worst version of this failure used to be silent: a corrupt index
+        read as empty, and the next ``create()`` overwrote the file — every
+        engagement name gone without a trace. Now the corrupt file is moved
+        aside (forensics stay possible) and the registry starts fresh, loudly.
+        Transcripts are unaffected: each still carries its own engagement_id.
+        """
+        import sys
+        from datetime import datetime, timezone as _tz
+
+        backup = self._path.with_name(
+            f"{self._path.name}.corrupt-"
+            f"{datetime.now(_tz.utc).strftime('%Y%m%dT%H%M%S')}")
+        try:
+            self._path.replace(backup)
+            print(f"WARNING: corrupt engagement index quarantined as {backup.name} "
+                  f"— the registry starts fresh; transcript grouping is unaffected "
+                  f"(transcripts carry their own engagement_id).", file=sys.stderr)
+        except OSError:
+            print("WARNING: corrupt engagement index could not be quarantined; "
+                  "proceeding with a fresh registry.", file=sys.stderr)
+        return {"schema": SCHEMA, "engagements": {}}
 
     def _write(self, data: dict) -> Path:
         self._path.parent.mkdir(parents=True, exist_ok=True)

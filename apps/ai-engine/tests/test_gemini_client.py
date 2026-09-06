@@ -186,3 +186,24 @@ class ProviderSelectionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProviderFailClosedTest(unittest.TestCase):
+    """GROUNDWORK_PROVIDER=gemni (typo) used to fall through to mock mode: a
+    'live' deployment serving scripted interviews. Same fail-closed rule as
+    GROUNDWORK_ENV."""
+
+    def test_an_unknown_provider_is_refused(self):
+        import os
+
+        from ai_engine.config import ConfigurationError
+
+        with mock.patch.dict(os.environ, {"GROUNDWORK_PROVIDER": "gemni"}):
+            with self.assertRaises(ConfigurationError):
+                Settings()
+
+    def test_known_providers_still_construct(self):
+        with mock.patch.dict(os.environ, {"GROUNDWORK_PROVIDER": "gemini"}):
+            Settings()
+        with mock.patch.dict(os.environ, {"GROUNDWORK_PROVIDER": "anthropic"}):
+            Settings()

@@ -16,6 +16,7 @@ from ai_engine.application.service import (
     ConsultantService,
 )
 from ai_engine.config import Runtime, Settings
+from ai_engine.llm.retry import LLMUnavailable
 from ai_engine.validation.model import Verdict
 
 
@@ -296,3 +297,89 @@ class EmployerReleaseContractTest(unittest.TestCase):
         eid = self.service.create_engagement("Nothing yet")["id"]
         with self.assertRaises(ValueError):
             self.service.employer_release_markdown(engagement_id=eid)
+
+
+class DemoFailureIsolationTest(unittest.TestCase):
+    """One failed interview used to escape the thread pool and 500 the whole
+    route, leaving a random half of the engagement stored. Failures are now
+    isolated per interview and reported."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.data_dir = Path(self._tmp.name)
+        self.service = ConsultantService(_settings(self.data_dir))
+
+    def _patch(self, attr, value):
+        import ai_engine.application.demo as demo_mod
+
+        original = getattr(demo_mod, attr)
+        setattr(demo_mod, attr, value)
+        self.addCleanup(setattr, demo_mod, attr, original)
+
+    def test_a_dead_model_fails_every_interview_without_raising(self):
+        from ai_engine.application import demo as demo_mod
+
+        class _Dead:
+            def complete(self, **k):
+                raise LLMUnavailable(4, RuntimeError("down"))
+
+        self._patch("get_llm_client", lambda s: _Dead())
+        result = demo_mod.run_demo_engagement(self.service)
+        self.assertEqual(len(result.failures), 9)
+        self.assertEqual(len(result.interviews), 0)
+        self.assertTrue(result.all_failed)
+        # Failed interviews take their unconsented partial testimony with them.
+        leftovers = [p.name for p in (self.data_dir).glob("*.testimony.jsonl")]
+        self.assertEqual(leftovers, [], "partial testimony of failed interviews must not persist")
+
+    def test_one_failed_interview_does_not_sink_the_engagement(self):
+        import ai_engine.application.demo as demo_mod
+        from ai_engine.interview.engine import InterviewEngine as _Real
+        from ai_engine.llm.retry import LLMUnavailable
+
+        class _OneFails(_Real):
+            _calls = {"n": 0}
+
+            def next_turn(self, **kwargs):
+                if _OneFails._calls["n"] == 0:
+                    _OneFails._calls["n"] = 1
+                    raise LLMUnavailable(1, RuntimeError("flaky"))
+                return super().next_turn(**kwargs)
+
+        self._patch("InterviewEngine", _OneFails)
+        result = demo_mod.run_demo_engagement(self.service)
+        self.assertEqual(len(result.failures), 1)
+        self.assertEqual(len(result.interviews) + len(result.failures), 9,
+                         "every persona is accounted for: completed or failed")
+        self.assertIn("error", result.failures[0])
+        stored = [i for i in result.interviews
+                  if self.service.load_transcript(i["transcript_id"])]
+        self.assertEqual(len(stored), 8)
+
+
+class EngagementRegistryCorruptionTest(unittest.TestCase):
+    """A corrupt index used to read as empty AND be overwritten by the next
+    create — every engagement name gone without a trace."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.data_dir = Path(self._tmp.name)
+        self.service = ConsultantService(_settings(self.data_dir))
+
+    def test_corrupt_index_is_quarantined_not_overwritten(self):
+        self.service.create_engagement("Keep me")
+        index = self.data_dir / "engagements" / "index.json"
+        index.write_text("{broken", encoding="utf-8")
+
+        entry = self.service.create_engagement("After corruption")
+
+        backups = list((self.data_dir / "engagements").glob("index.json.corrupt-*"))
+        self.assertEqual(len(backups), 1, "the corrupt file must be preserved")
+        self.assertIn("{broken", backups[0].read_text(encoding="utf-8"))
+        self.assertEqual(entry["name"], "After corruption")
+        # And the registry is usable afterwards.
+        self.assertEqual(
+            [e["name"] for e in self.service.list_engagements()],
+            ["After corruption"])

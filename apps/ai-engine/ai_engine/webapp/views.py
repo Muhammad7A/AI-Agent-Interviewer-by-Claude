@@ -243,7 +243,8 @@ def runner(*, interview_id: str, participant: str, question: str | None,
         )
     else:
         action = (
-            f'<form method="post" action="/interviews/{esc(interview_id)}/answer">'
+            f'<form method="post" action="/interviews/{esc(interview_id)}/answer" '
+            f'onsubmit="var b=this.querySelector(\'button.primary\');if(b)b.disabled=true">'
             f'<div class="card"><h3>{esc(question or "")}</h3>'
             '<textarea name="answer" rows="4" placeholder="the answer, as given" required autofocus></textarea>'
             '<div class="row" style="margin-top:10px">'

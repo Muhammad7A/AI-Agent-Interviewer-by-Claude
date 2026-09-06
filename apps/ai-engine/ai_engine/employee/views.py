@@ -117,7 +117,8 @@ def question_page(*, token: str, question: str, answered: list[dict],
         f'<p class="progress">Question {turn} of about {max_turns} · your answers are '
         "confidential to the interviewer</p>"
         f'<div class="card"><p class="question">{esc(question)}</p>'
-        f'<form method="post" action="/i/{esc(token)}/answer">'
+        f'<form method="post" action="/i/{esc(token)}/answer" '
+        f'onsubmit="var b=this.querySelector(\'button.primary\');if(b)b.disabled=true">'
         '<textarea name="answer" required autofocus '
         'placeholder="In your own words. Specifics help more than summaries."></textarea>'
         '<div class="row"><button type="submit">Continue</button>'

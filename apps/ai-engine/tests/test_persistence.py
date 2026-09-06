@@ -218,3 +218,108 @@ class ProductionPostureTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CorruptStoreDegradationTest(unittest.TestCase):
+    """Reliability contract for corrupt on-disk state: readable-but-invalid
+    degrades to a fresh start; unreadable (keying) failures are non-destructive."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+
+    @staticmethod
+    def _draft_store(dir_path, cipher):
+        import base64
+
+        from ai_engine.persistence.session_store import SavedSession, SessionStore
+        from ai_engine.transcript.model import Transcript
+
+        class _Stub:
+            name = "stub"
+
+            @property
+            def protects_at_rest(self):
+                return True
+
+            @staticmethod
+            def encrypt(plain):
+                return base64.b64encode(plain[::-1])
+
+            @staticmethod
+            def decrypt(blob):
+                return base64.b64decode(blob)[::-1]
+
+        store = SessionStore(dir_path, cipher if cipher is not None else _Stub())
+        transcript = Transcript()
+        transcript.interview_id = "P-test00000000"
+        saved = SavedSession(token="tok", transcript=transcript,
+                             pending_question="What does a day look like?",
+                             turn_count=1, closed=False)
+        return store, saved
+
+    def _draft_driver(self):
+        from ai_engine.interview.driver import InterviewDriver
+        from ai_engine.interview.engine import InterviewEngine
+        from ai_engine.persistence.event_log import NullEventLog
+
+        return InterviewDriver(engine=InterviewEngine(llm=None, max_turns=14),
+                               transcript=Transcript(), objective="test",
+                               event_log=NullEventLog(), max_turns=14)
+
+    def test_corrupt_session_draft_is_removed_and_fresh_start_offered(self):
+        # Plaintext store: a readable-but-invalid draft is JSON corruption,
+        # which is removed so the participant starts fresh instead of wedging.
+        store, saved = self._draft_store(self.dir, NullCipher())
+        driver = self._draft_driver()
+        driver.next_question()
+        driver.submit_answer("I keep a private spreadsheet, honestly.")
+        saved.transcript = driver.transcript
+        saved.pending_question = driver.pending_question
+        store.save(saved)
+        path = next((self.dir / "sessions").iterdir())
+        path.write_text("{corrupt", encoding="utf-8")
+
+        self.assertIsNone(store.load("tok"))
+        self.assertFalse(path.exists(), "a readable-but-invalid draft must not linger")
+
+    def test_a_decrypt_failure_keeps_the_draft_recoverable(self):
+        # A REAL wrong-key scenario: the draft was written under key A, loaded
+        # under key B. The decrypt failure must not destroy the draft.
+        from cryptography.fernet import Fernet
+
+        from ai_engine.persistence.crypto import FernetCipher
+
+        key_a, key_b = Fernet.generate_key(), Fernet.generate_key()
+        store, saved = self._draft_store(self.dir, FernetCipher(key_a))
+        driver = self._draft_driver()
+        driver.next_question()
+        driver.submit_answer("I keep a private spreadsheet, honestly.")
+        saved.transcript = driver.transcript
+        saved.pending_question = driver.pending_question
+        path = store.save(saved)
+        # Re-encrypt the same draft under key B: the loading store (key A)
+        # can no longer decrypt it.
+        payload = FernetCipher(key_a).decrypt(path.read_bytes())
+        path.write_bytes(FernetCipher(key_b).encrypt(payload))
+
+        self.assertIsNone(store.load("tok"))
+        self.assertTrue(path.exists(),
+                        "a keying error must not destroy a recoverable draft")
+
+    def test_corrupt_engagement_index_is_quarantined(self):
+        from ai_engine.persistence.engagements import EngagementStore
+
+        store = EngagementStore(self.dir)
+        store.create("Keep me")
+        index = self.dir / "engagements" / "index.json"
+        index.write_text("{broken", encoding="utf-8")
+
+        entry = EngagementStore(self.dir).create("After corruption")
+        backups = list((self.dir / "engagements").glob("index.json.corrupt-*"))
+        self.assertEqual(len(backups), 1)
+        self.assertIn("{broken", backups[0].read_text(encoding="utf-8"))
+        self.assertEqual(
+            [e["name"] for e in EngagementStore(self.dir).list()],
+            ["After corruption"])

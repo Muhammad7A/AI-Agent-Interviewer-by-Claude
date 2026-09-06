@@ -115,6 +115,20 @@ class Settings:
         default_factory=lambda: os.environ.get("GROUNDWORK_GEMINI_PROJECT") or None)
     gemini_location: str = os.environ.get("GROUNDWORK_GEMINI_LOCATION", "us-central1")
 
+    def __post_init__(self) -> None:
+        """An unknown provider fails closed, like an unknown runtime.
+
+        ``GROUNDWORK_PROVIDER=gemni`` (typo) used to fall through the inference
+        chain to empty — mock mode — so a misconfigured "live" deployment would
+        serve scripted interviews while the banner said LIVE.
+        """
+        if self.provider and self.provider not in ("anthropic", "gemini"):
+            raise ConfigurationError(
+                f"GROUNDWORK_PROVIDER={self.provider!r} is not a recognized "
+                f"provider — use 'anthropic' or 'gemini'. A typo here would "
+                f"silently disable live cognition, so it is refused rather "
+                f"than ignored.")
+
     @property
     def has_live_model(self) -> bool:
         if self.provider == "gemini":

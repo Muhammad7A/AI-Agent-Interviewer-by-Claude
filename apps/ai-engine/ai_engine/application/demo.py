@@ -1,11 +1,12 @@
 """The one-click demo engagement — the whole product in sixty seconds.
 
-Five synthetic personas are interviewed **in parallel** (the thing that makes
-this product interesting is that forty interviews cost the same wall-clock as
-one), their claims pass the two evidence gates, an auto-sim reviewer labels its
-own verdicts honestly (a machine verdict is never recorded as a human one), and
-both deliverables come out the other end: the consultant's synthesis and the
-employer's firewalled release.
+The demo org's nine synthetic personas are interviewed **in parallel** (the
+thing that makes this product interesting is that forty interviews cost the
+same wall-clock as one), their claims pass the two evidence gates, an auto-sim
+reviewer labels its own verdicts honestly (a machine verdict is never recorded
+as a human one), and both deliverables come out the other end: the consultant's
+synthesis and the employer's firewalled release — corroborated topics released
+at k=3, single- and double-voice topics withheld into the ledger by design.
 
 In mock mode the run is deterministic — a pitch never breaks from a flaky
 network. With a live model configured, the same button runs real interviews and
@@ -43,13 +44,18 @@ def run_demo_engagement(
     service: ConsultantService,
     *,
     engagement_name: str = "Speedrun demo",
-    max_workers: int = 5,
+    max_workers: int | None = None,
 ) -> DemoResult:
-    """Interview the demo org in parallel and produce every deliverable."""
+    """Interview the demo org in parallel and produce every deliverable.
+
+    ``max_workers`` defaults to the org's size — the whole point being that
+    nine interviews cost the same wall-clock as one.
+    """
     settings = service.settings
     engagement = service.create_engagement(engagement_name)
     llm = get_llm_client(settings)
     personas = sorted(_personas(), key=lambda p: p.name)
+    workers = max_workers or len(personas)
 
     # Pseudonyms are assigned serially before the threads start: the mapping is
     # in-memory state, and pre-issuing keeps parallelism from racing it.
@@ -92,7 +98,7 @@ def run_demo_engagement(
             "validated": sum(1 for f in findings if f.is_reportable),
         }
 
-    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+    with ThreadPoolExecutor(max_workers=workers) as pool:
         interviews = list(pool.map(interview_one, assignments))
 
     return DemoResult(engagement_id=engagement["id"],

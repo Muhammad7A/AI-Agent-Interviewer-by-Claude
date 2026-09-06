@@ -102,9 +102,23 @@ class Settings:
     #: no-auth Year-0/1 posture; the employee surface's auth is invitation tokens.
     operator_password: str | None = field(
         default_factory=lambda: os.environ.get("GROUNDWORK_OPERATOR_PASSWORD") or None)
+    #: Which live adapter to build. Explicit via GROUNDWORK_PROVIDER ("anthropic"
+    #: | "gemini"); otherwise inferred — an Anthropic key wins, then Gemini when
+    #: GOOGLE_APPLICATION_CREDENTIALS is set. Empty means mock mode.
+    provider: str = field(default_factory=lambda: (
+        (os.environ.get("GROUNDWORK_PROVIDER") or "").strip().lower()
+        or ("anthropic" if os.environ.get("ANTHROPIC_API_KEY")
+            else ("gemini" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+                  else ""))))
+    gemini_model: str = os.environ.get("GROUNDWORK_GEMINI_MODEL", "gemini-2.5-flash")
+    gemini_project: str | None = field(
+        default_factory=lambda: os.environ.get("GROUNDWORK_GEMINI_PROJECT") or None)
+    gemini_location: str = os.environ.get("GROUNDWORK_GEMINI_LOCATION", "us-central1")
 
     @property
     def has_live_model(self) -> bool:
+        if self.provider == "gemini":
+            return True  # ADC is configured via the environment; preflight proves it
         return bool(self.api_key)
 
     @property
@@ -126,9 +140,16 @@ class Settings:
         problems: list[str] = []
         if not self.has_live_model:
             problems.append(
-                "no ANTHROPIC_API_KEY: cognition would silently fall back to the "
-                "scripted mock interviewer, serving fabricated interviews to real "
-                "people and recording them as genuine testimony"
+                "no live model configured: set ANTHROPIC_API_KEY, or "
+                "GOOGLE_APPLICATION_CREDENTIALS (with GROUNDWORK_PROVIDER=gemini) — "
+                "otherwise cognition would silently fall back to the scripted mock "
+                "interviewer, serving fabricated interviews to real people and "
+                "recording them as genuine testimony"
+            )
+        if self.provider == "gemini" and not self.gemini_project:
+            problems.append(
+                "GROUNDWORK_GEMINI_PROJECT is not set: the Vertex AI endpoint is "
+                "per-project, so the Gemini adapter cannot be built without it"
             )
         if not self.store_key:
             problems.append(
@@ -162,7 +183,8 @@ class Settings:
 
     def posture_banner(self) -> str:
         """One line stating exactly what the operator is running."""
-        model = f"LIVE {self.model}" if self.has_live_model else "MOCK (no API key)"
+        model = (f"LIVE {self.gemini_model if self.provider == 'gemini' else self.model}"
+                 if self.has_live_model else "MOCK (no live model)")
         store = "encrypted" if (self.store_key and cipher_available()) else "PLAINTEXT"
         return f"env={self.runtime.value}  cognition={model}  storage-at-rest={store}"
 
@@ -194,17 +216,12 @@ def preflight_model(settings: Settings | None = None) -> str:
     settings = settings or load_settings()
     if not settings.has_live_model:
         return "mock"
-    from .llm.client import AnthropicClient
     from .llm.retry import RetryPolicy
 
     # One attempt: a wrong model id is permanent, and an overloaded API should not
     # hold up startup for four backoffs. A transient failure here is reported the
     # same way — the operator retries the command.
-    client = AnthropicClient(
-        model=settings.model,
-        api_key=settings.api_key,
-        policy=RetryPolicy(attempts=1),
-    )
+    client = _build_provider_client(settings, policy=RetryPolicy(attempts=1))
     try:
         client.complete(system="Reply with the single word: ok.",
                         messages=[{"role": "user", "content": "ping"}],
@@ -218,6 +235,23 @@ def preflight_model(settings: Settings | None = None) -> str:
     return settings.model
 
 
+def _build_provider_client(settings: Settings, policy=None):
+    """The live adapter for ``settings.provider`` — the only place it is chosen."""
+    if settings.provider == "gemini":
+        from .llm.gemini_client import GeminiClient
+
+        return GeminiClient(
+            model=settings.gemini_model,
+            project=settings.gemini_project or "",
+            location=settings.gemini_location,
+            policy=policy,
+        )
+    from .llm.client import AnthropicClient
+
+    return AnthropicClient(model=settings.model, api_key=settings.api_key,
+                           policy=policy)
+
+
 def get_llm_client(settings: Settings | None = None):
     """Return a live LLM client, or ``None`` to signal mock mode.
 
@@ -229,16 +263,18 @@ def get_llm_client(settings: Settings | None = None):
     if not settings.has_live_model:
         if settings.is_production:
             raise ConfigurationError(
-                f"{ENV_VAR}=production requires ANTHROPIC_API_KEY; refusing to fall "
-                f"back to the scripted mock interviewer."
+                f"{ENV_VAR}=production requires a live model (ANTHROPIC_API_KEY, or "
+                f"GROUNDWORK_PROVIDER=gemini with GOOGLE_APPLICATION_CREDENTIALS); "
+                f"refusing to fall back to the scripted mock interviewer."
             )
         return None
     from .llm.cache import wrap_if_caching
-    from .llm.client import AnthropicClient
 
-    client = AnthropicClient(model=settings.model, api_key=settings.api_key)
+    client = _build_provider_client(settings)
     # Deterministic calls (tagging, entailment, relation classification) are served
     # from cache; the interview loop samples and is never cached. Wrapping here means
     # every caller benefits without knowing the cache exists.
-    return wrap_if_caching(client, settings.derived_store(), model=settings.model,
+    cache_model = (settings.gemini_model if settings.provider == "gemini"
+                   else settings.model)
+    return wrap_if_caching(client, settings.derived_store(), model=cache_model,
                            enabled=settings.cache_derived)

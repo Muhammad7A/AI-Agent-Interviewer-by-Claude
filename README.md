@@ -189,7 +189,18 @@ python3 -m ai_engine.employee   # employee surface      → http://127.0.0.1:810
 | `GROUNDWORK_STORE_KEY` | testimony stored **in plaintext** | encrypted at rest |
 | `GROUNDWORK_ENV` | `dev` — mocks and plaintext allowed | `production` — **refuses to start** without both of the above |
 | `GROUNDWORK_MODEL` | `claude-sonnet-5` | your choice — checked at startup, see below |
+| `GROUNDWORK_PROVIDER` | inferred (Anthropic key, then Gemini) | `gemini` or `anthropic` |
+| `GROUNDWORK_GEMINI_MODEL` | `gemini-2.5-flash` | any Vertex AI Gemini model |
+| `GROUNDWORK_GEMINI_PROJECT` / `GROUNDWORK_GEMINI_LOCATION` | — / `us-central1` | Vertex AI project & region |
+| `GROUNDWORK_OPERATOR_PASSWORD` | workspace open on localhost | HTTP Basic required; mandatory in production |
 | `GROUNDWORK_DATA_DIR` | `data/interviews` | storage location |
+
+Gemini runs on Vertex AI with **Application Default Credentials**: set
+`GOOGLE_APPLICATION_CREDENTIALS` to a service-account key (or run on Google
+Cloud, where the metadata server supplies the token), add
+`GROUNDWORK_GEMINI_PROJECT`, and the same interview loop, gates, and firewall
+run on Gemini. No Google SDK is required — the service-account JWT is signed
+with the `cryptography` package the encrypted store already uses.
 
 Install the matching extras with `pip install -e '.[live,secure,web]'`.
 

@@ -6,7 +6,7 @@ Severity: P0 data-loss/security-critical · P1 feature-breaking · P2 degraded-b
 
 Assumptions faced: unreliable providers, malformed outputs, long conversations, conflicting instructions, interrupted sessions, duplicate requests, concurrent users, partial network failures, inconsistent state, invalid API responses, rate limits, latency spikes, process restarts.
 
-## 1. Conversation edge cases (CONV, 100)
+## 1. Conversation edge cases (CONV, 115)
 
 | ID | Scenario | Expected | Current | Sev | Mitigation | Test |
 |---|---|---|---|---|---|---|
@@ -40,12 +40,27 @@ Assumptions faced: unreliable providers, malformed outputs, long conversations, 
 | CONV-028 | "system:" role confusion in answer | testimony | stored; prompt interpolation documented | P2 | fencing | code |
 | CONV-029 | Base64 blob answer | vague/substantive by length | recorded; tagger words [a-z]+ | P3 | — | code |
 | CONV-030 | Repeated triple-fences ×5 | inert offline | offline immune; live documented | P2 | fencing | code |
-| CONV-031..038 | Each of the 8 deflection markers verbatim | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified per marker (marker list engine.py:124) | P2 | — | test_strategy ✓exec |
+| CONV-031 | Deflection marker verbatim: "rather not" | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified: marker list engine.py:124, guard at strategy | P2 | — | test_strategy |
+| CONV-032 | Deflection marker verbatim: "prefer not" | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified: marker list engine.py:124, guard at strategy | P2 | — | test_strategy |
+| CONV-033 | Deflection marker verbatim: "no comment" | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified: marker list engine.py:124, guard at strategy | P2 | — | test_strategy |
+| CONV-034 | Deflection marker verbatim: "don't want to get into" | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified: marker list engine.py:124, guard at strategy | P2 | — | test_strategy |
+| CONV-035 | Deflection marker verbatim: "not comfortable" | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified: marker list engine.py:124, guard at strategy | P2 | — | test_strategy |
+| CONV-036 | Deflection marker verbatim: "won't answer" | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified: marker list engine.py:124, guard at strategy | P2 | — | test_strategy |
+| CONV-037 | Deflection marker verbatim: "skip that" | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified: marker list engine.py:124, guard at strategy | P2 | — | test_strategy |
+| CONV-038 | Deflection marker verbatim: "pass on that" | candor=guarded, DE_ESCALATE, area deferred 2 turns | verified: marker list engine.py:124, guard at strategy | P2 | — | test_strategy |
+| CONV-043 | Vague marker verbatim: "mostly fine" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
+| CONV-044 | Vague marker verbatim: "nothing jumps out" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
+| CONV-045 | Vague marker verbatim: "pretty standard" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
+| CONV-046 | Vague marker verbatim: "standard stuff" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
+| CONV-047 | Vague marker verbatim: "nothing really" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
+| CONV-048 | Vague marker verbatim: "can't think of" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
+| CONV-049 | Vague marker verbatim: "not sure" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
+| CONV-050 | Vague marker verbatim: "hard to say" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
+| CONV-051 | Vague marker verbatim: "can't really say" | specificity conversion on same area | verified: marker list engine.py:129 | P2 | — | test_strategy |
 | CONV-039 | "noteworthy" (contains near-marker) | NOT guarded | markers are space-padded phrases; "noteworthy" doesn't match "rather not" etc. | P3 | — | code: engine.py:124 |
 | CONV-040 | Deflection twice in a row | never de-escalate twice | `self._last_intent is not DE_ESCALATE` guard ✓exec | — | — | test_strategy |
 | CONV-041 | Return to deferred area after 2 turns | competes again | `deferred_until_turn` decay ✓exec | — | — | test_strategy |
 | CONV-042 | Refusal on tier-capped area | deferred; gain damped ×0.15 | ✓exec | — | — | test_strategy |
-| CONV-043..051 | Each of 9 vague markers verbatim | specificity conversion, same area | verified per marker (engine.py:129) | P2 | — | test_strategy ✓exec |
 | CONV-052 | Vague ×2 | CONVERT_SPECIFICITY again (streak<2) | ✓exec | — | — | test_strategy |
 | CONV-053 | Vague ×3 | streak=max → area struck from ladder | ✓exec | — | — | test_strategy/state |
 | CONV-054 | Vague → concrete | streak reset 0 | ✓exec | — | — | test_strategy |
@@ -95,6 +110,24 @@ Assumptions faced: unreliable providers, malformed outputs, long conversations, 
 | CONV-098 | Consultant answer duplicate (double-click) | one record | 2 records (same class as CONV-072) | P2 | UI guard | NEW test (guard) |
 | CONV-099 | Consultant stalled recovery | pause 503 → auto-continue | ✓exec (fixed) | — | — | test_web_surface_hardening |
 | CONV-100 | Simulated demo while manual live | independent sessions | independent LiveInterview objects ✓exec | — | — | code |
+
+| CONV-101 | Engagement name 300 chars | stored, rendered | no name cap; renders long | P3 | name cap | code |
+| CONV-102 | Engagement name unicode/emoji | escaped render | esc ✓exec | — | — | code |
+| CONV-103 | Two participants with the same real name | same pseudonym (HMAC of name) | merged by design — corroboration conflates two people | P2 | disambiguating intake | code: identity |
+| CONV-104 | Interview with zero subject answers | 0 claims, report empty-honest | tagging 0 claims; report "No validated findings" ✓exec | — | — | code |
+| CONV-105 | Transcript with a single interviewer segment | no subject evidence | gates find no subject spans ✓ | — | — | code |
+| CONV-106 | Draft updated_at in the future | TTL longer than designed | expiry math off by skew | P3 | clamp | code |
+| CONV-107 | Sweep while participant mid-answer | in-memory session unaffected; draft kept (not expired) | ✓ | P3 | — | code |
+| CONV-108 | Withdraw after draft expiry | 404 unavailable; nothing to delete | ✓ | — | — | code |
+| CONV-109 | Operator password with unicode | Basic auth compare | compare_digest on utf-8 bytes ✓ | P3 | — | code |
+| CONV-110 | GROUNDWORK_DATA_DIR on a network share | latency/locking per share | untested; document | P3 | — | docs |
+| CONV-111 | Report read with key set but file plaintext | reads what's on disk | ✓exec | — | — | code: reports.load |
+| CONV-112 | Invitation created with default engagement while engagement deleted | ensure() re-registers | ✓exec | — | — | code |
+| CONV-113 | Demo engagement_name 300 chars | stored/rendered | no cap (same as 101) | P3 | — | code |
+| CONV-114 | Synthesis of engagement with only guarded personas | 0 findings → honest empty report | render_release_report handles empty ✓exec | — | — | code |
+| CONV-115 | Employer release with ALL topics withheld | header + ledger only | ✓exec (suppressions render) | — | — | code |
+| CONV-116 | Manual consultant interview with participant = "" | "unknown" pseudonym | ✓exec | P3 | — | code |
+| CONV-117 | Answer sent while operator password just enabled | 401 on POST | middleware covers all methods ✓exec | P3 | — | code |
 
 ## 2. Model output failures & instruction conflicts (PROMPT, 100)
 

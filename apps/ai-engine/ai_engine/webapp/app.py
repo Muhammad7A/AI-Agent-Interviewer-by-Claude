@@ -82,6 +82,7 @@ def create_app(settings: Settings | None = None,
         posture, warn = svc.posture()
         return HTMLResponse(views.dashboard(
             interviews=svc.dashboard_rows(), live=svc.live_summary(),
+            engagements=svc.list_engagements(),
             posture=posture, warn=warn))
 
     # -- invitations -------------------------------------------------------
@@ -94,6 +95,11 @@ def create_app(settings: Settings | None = None,
         surface never asks the participant for a name — there is no field for it.
         """
         svc.invite(participant)
+        return RedirectResponse("/invitations", status_code=303)
+
+    @app.post("/invitations/batch")
+    def invite_batch(request: Request, names: str = Form(...)) -> RedirectResponse:
+        svc.invite_batch(names)
         return RedirectResponse("/invitations", status_code=303)
 
     @app.get("/invitations", response_class=HTMLResponse)
@@ -110,9 +116,12 @@ def create_app(settings: Settings | None = None,
     # -- interview ---------------------------------------------------------
     @app.post("/interviews/new")
     def start_interview(request: Request, participant: str = Form(...),
-                        mode: str = Form("manual")):
+                        mode: str = Form("manual"),
+                        engagement: str = Form("")):
+        engagement_id = svc.resolve_engagement(engagement)
         try:
-            transcript_id = svc.start(participant, simulated=(mode == "simulated"))
+            transcript_id = svc.start(participant, simulated=(mode == "simulated"),
+                                      engagement_id=engagement_id)
         except LLMError:
             # Nothing is registered, so the consultant can simply retry; the
             # transcript had no answers yet.

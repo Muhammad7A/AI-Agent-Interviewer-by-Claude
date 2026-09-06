@@ -28,6 +28,7 @@ from ..interview.driver import InterviewDriver
 from ..interview.engine import InterviewEngine
 from ..interview.session import DEFAULT_OBJECTIVE
 from ..llm.retry import LLMError
+from ..persistence.engagements import DEFAULT_ENGAGEMENT, EngagementStore
 from ..persistence.event_log import EventLog
 from ..persistence.invitations import InvitationStore
 from ..persistence.ledger import read_verdicts
@@ -89,6 +90,41 @@ class ConsultantService:
         unsafe = (not self.settings.has_live_model) or (not self.store.encrypted)
         return banner, unsafe
 
+    # -- engagements ----------------------------------------------------------
+    def create_engagement(self, name: str) -> dict:
+        """A named mandate: the group of interviews one synthesis will come from."""
+        return EngagementStore(self.settings.data_dir).create(name)
+
+    def list_engagements(self) -> list[dict]:
+        store = EngagementStore(self.settings.data_dir)
+        counts: dict[str, int] = {}
+        for tid in self.store.list_ids():
+            transcript = self.load_transcript(tid)
+            if transcript is None:
+                continue
+            counts[transcript.engagement_id] = counts.get(transcript.engagement_id, 0) + 1
+        rows = []
+        for e in store.list():
+            rows.append({**e, "interviews": counts.get(e["id"], 0)})
+        return rows
+
+    def engagement_name(self, engagement_id: str) -> str:
+        e = EngagementStore(self.settings.data_dir).get(engagement_id)
+        return e["name"] if e else engagement_id
+
+    def resolve_engagement(self, name: str) -> str:
+        """The engagement id for a name — matched case-insensitively, created
+        when new. Blank means the ad-hoc default engagement."""
+        store = EngagementStore(self.settings.data_dir)
+        wanted = name.strip()
+        if not wanted:
+            store.ensure(DEFAULT_ENGAGEMENT)
+            return DEFAULT_ENGAGEMENT
+        for e in store.list():
+            if e["name"].lower() == wanted.lower():
+                return e["id"]
+        return store.create(wanted)["id"]
+
     # -- invitations ----------------------------------------------------------
     def invite(self, participant: str) -> str:
         """Pseudonymize at ingest and create an invitation for the employee surface."""
@@ -99,16 +135,32 @@ class ConsultantService:
     def list_invitations(self) -> list:
         return InvitationStore(self.settings.data_dir).list_all()
 
+    def invite_batch(self, names: str) -> list[str]:
+        """One invitation per line of a pasted roster; blank lines skipped."""
+        tokens = []
+        for line in names.splitlines():
+            if not line.strip():
+                continue
+            tokens.append(self.invite(line))
+        return tokens
+
+    def transcripts_for_engagement(self, engagement_id: str) -> list[str]:
+        return [tid for tid in self.store.list_ids()
+                if (t := self.load_transcript(tid)) is not None
+                and t.engagement_id == engagement_id]
+
     # -- consultant-run interviews -------------------------------------------
-    def start(self, participant: str, *, simulated: bool = False) -> str:
+    def start(self, participant: str, *, simulated: bool = False,
+              engagement_id: str = DEFAULT_ENGAGEMENT) -> str:
         """Begin an interview; returns the transcript id.
 
         Raises :class:`LLMError` when the first model call fails — nothing has
         been registered, so the caller can simply offer a retry.
         """
+        EngagementStore(self.settings.data_dir).ensure(engagement_id)
         alias = self.pseudonymizer.pseudonym(participant.strip() or "unknown")
         self.pseudonymizer.save_state(self.settings.data_dir)
-        transcript = Transcript(engagement_id="eng-local", tenant_id="tenant-local")
+        transcript = Transcript(engagement_id=engagement_id, tenant_id="tenant-local")
         transcript.interview_id = alias
 
         llm = get_llm_client(self.settings)
@@ -375,6 +427,7 @@ class ConsultantService:
             rows.append({
                 "id": tid,
                 "participant": transcript.interview_id or "—",
+                "engagement": self.engagement_name(transcript.engagement_id),
                 "segments": len(transcript.segments),
                 "claims": len(claims),
                 "validated": sum(1 for c in claims if c.id in verdicts),

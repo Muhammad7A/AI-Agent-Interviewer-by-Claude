@@ -154,3 +154,53 @@ class PseudonymPersistenceTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EngagementUseCaseTest(unittest.TestCase):
+    """Engagements are the consultant's unit of work — named, grouped, reported."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.data_dir = Path(self._tmp.name)
+        self.service = ConsultantService(_settings(self.data_dir))
+
+    def test_interviews_group_under_a_named_engagement(self):
+        engagement_id = self.service.create_engagement("Acme discovery")["id"]
+        tid = self.service.start("Dana", simulated=True, engagement_id=engagement_id)
+        self.service.finish(tid)
+        rows = {r["id"]: r for r in self.service.dashboard_rows()}
+        self.assertEqual(rows[tid]["engagement"], "Acme discovery")
+        listing = self.service.list_engagements()
+        acme = next(e for e in listing if e["id"] == engagement_id)
+        self.assertEqual(acme["interviews"], 1)
+
+    def test_resolving_a_name_reuses_the_engagement(self):
+        first = self.service.resolve_engagement("Acme")
+        second = self.service.resolve_engagement("acme")   # case-insensitive
+        self.assertEqual(first, second)
+        blank = self.service.resolve_engagement("  ")
+        self.assertEqual(self.service.engagement_name(blank), "Ad-hoc interviews")
+
+    def test_batch_intake_creates_one_invitation_per_line(self):
+        tokens = self.service.invite_batch("Ana\nBo\n\nCitra\n")
+        self.assertEqual(len(tokens), 3, "blank lines must be skipped")
+        self.assertEqual(len(self.service.list_invitations()), 3)
+
+
+class BatchIntakeWebTest(unittest.TestCase):
+    def test_the_batch_route_creates_invitations(self):
+        try:
+            from fastapi.testclient import TestClient
+        except Exception:
+            self.skipTest("requires fastapi")
+            return
+        from ai_engine.webapp.app import create_app
+
+        with tempfile.TemporaryDirectory() as tmp:
+            client = TestClient(create_app(_settings(Path(tmp))))
+            r = client.post("/invitations/batch",
+                            data={"names": "Ana\nBo\nCitra"}, follow_redirects=False)
+            self.assertEqual(r.status_code, 303)
+            page = client.get("/invitations").text
+            self.assertEqual(page.count("/i/"), 3)

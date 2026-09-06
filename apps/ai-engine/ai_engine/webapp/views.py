@@ -67,12 +67,14 @@ def esc(value) -> str:
     return escape(str(value), quote=True)
 
 
-def layout(title: str, body: str, *, posture: str = "", warn: bool = False) -> str:
+def layout(title: str, body: str, *, posture: str = "", warn: bool = False,
+           head_extra: str = "") -> str:
     flag = ' <span class="flag">⚠ not a real interview / not protected at rest</span>' if warn else ""
     bar = f'<div class="posture">{esc(posture)}{flag}</div>' if posture else ""
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
         '<meta name=viewport content="width=device-width,initial-scale=1">'
+        f"{head_extra}"
         f"<title>{esc(title)} · Groundwork</title><style>{CSS}</style></head><body>"
         f"{bar}<main>{body}</main></body></html>"
     )
@@ -108,6 +110,14 @@ def invitations(*, items: list[dict], posture: str, warn: bool) -> str:
                  placeholder="name or code (kept on this side only)" required></label>
           <button class="primary" type="submit">Create invitation</button>
         </form>
+        <form method="post" action="/invitations/batch" style="margin-top:10px">
+          <label>Or paste a roster — one participant per line
+            <textarea name="names" rows="3"
+                      placeholder="Ana&#10;Bo&#10;Citra"></textarea></label>
+          <div style="margin-top:8px">
+            <button class="primary" type="submit">Create batch</button>
+          </div>
+        </form>
         """
         + '<div class="note">Send the link path to the participant on the interview '
           "surface host (run it with <code>python -m ai_engine.employee</code>, default "
@@ -130,7 +140,8 @@ def _nav(current: str = "") -> str:
 
 # --- dashboard -------------------------------------------------------------
 
-def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: bool) -> str:
+def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: bool,
+              engagements: list[dict] | None = None) -> str:
     rows = ""
     for item in interviews:
         pending = item["claims"] - item["validated"]
@@ -138,6 +149,7 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
             "<tr>"
             f'<td><a href="/transcripts/{esc(item["id"])}/review">{esc(item["id"])}</a></td>'
             f'<td>{esc(item["participant"])}</td>'
+            f'<td>{esc(item.get("engagement", "—"))}</td>'
             f'<td>{item["segments"]}</td>'
             f'<td>{item["claims"]}</td>'
             f'<td>{"—" if not pending else f"<strong>{pending}</strong>"}</td>'
@@ -146,7 +158,8 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
             "</tr>"
         )
     table = (
-        "<table><tr><th>Interview</th><th>Participant</th><th>Segments</th>"
+        "<table><tr><th>Interview</th><th>Participant</th><th>Engagement</th>"
+        "<th>Segments</th>"
         f"<th>Claims</th><th>To review</th><th></th></tr>{rows}</table>"
         if rows else '<p class="sub">No stored interviews yet.</p>'
     )
@@ -159,12 +172,27 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
         )
         live_html = f"<h2>In progress</h2><ul>{items}</ul>"
 
+    engagements_html = ""
+    if engagements:
+        e_rows = "".join(
+            f"<tr><td>{esc(e['name'])}</td><td>{e['interviews']}</td>"
+            f'<td class="meta">{esc(e["id"])}</td></tr>'
+            for e in engagements
+        )
+        engagements_html = (
+            "<h2>Engagements</h2>"
+            "<table><tr><th>Name</th><th>Interviews</th><th></th></tr>"
+            f"{e_rows}</table>"
+        )
+
     new_form = """
     <h2>Start an interview</h2>
     <form class="inline" method="post" action="/interviews/new">
       <label>Participant
         <input type="text" name="participant" placeholder="name or code" required>
       </label>
+      <label>Engagement <input type="text" name="engagement"
+             placeholder="engagement name (optional)"></label>
       <label>Mode
         <select name="mode">
           <option value="manual">Answered at the keyboard</option>
@@ -173,16 +201,23 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
       </label>
       <button class="primary" type="submit">Start</button>
     </form>
+    <form class="inline" method="post" action="/demo/run" style="margin-top:10px">
+      <button type="submit">Run the demo engagement (5 parallel interviews)</button>
+    </form>
     <div class="note">The participant's name is pseudonymised immediately and never
     stored with their answers. Only this consultant workspace can re-identify, via a
     key held separately.</div>
     """
+    # While interviews are live the dashboard refreshes itself, so the demo
+    # reads as parallel progress without any client-side code.
+    refresh = '<meta http-equiv="refresh" content="4">' if live else ""
     body = (
         "<h1>Consultant workspace</h1>"
         '<p class="sub">Interview · review evidence · validate · report</p>'
         + _nav("/") + new_form + live_html + "<h2>Stored interviews</h2>" + table
+        + engagements_html
     )
-    return layout("Workspace", body, posture=posture, warn=warn)
+    return layout("Workspace", body, posture=posture, warn=warn, head_extra=refresh)
 
 
 # --- interview runner ------------------------------------------------------

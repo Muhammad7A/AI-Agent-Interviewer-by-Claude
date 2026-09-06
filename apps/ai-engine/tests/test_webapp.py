@@ -18,7 +18,7 @@ except Exception:  # pragma: no cover - environment dependent
 
 from ai_engine.config import Runtime, Settings
 from ai_engine.evidence.grounding import claim_id_for
-from ai_engine.webapp.ledger import read_verdicts
+from ai_engine.persistence.ledger import read_verdicts
 
 
 class ClaimIdentityTest(unittest.TestCase):

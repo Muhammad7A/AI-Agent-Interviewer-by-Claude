@@ -97,6 +97,11 @@ class Settings:
     #: request failure on every future turn, wedging the interview with no way to
     #: retract the answer. Capped at the web layer, where the input arrives.
     max_answer_chars: int = int(os.environ.get("GROUNDWORK_MAX_ANSWER_CHARS", "20000"))
+    #: When set, the consultant workspace demands HTTP Basic with this password,
+    #: and production refuses to start without one. Unset keeps the localhost
+    #: no-auth Year-0/1 posture; the employee surface's auth is invitation tokens.
+    operator_password: str | None = field(
+        default_factory=lambda: os.environ.get("GROUNDWORK_OPERATOR_PASSWORD") or None)
 
     @property
     def has_live_model(self) -> bool:

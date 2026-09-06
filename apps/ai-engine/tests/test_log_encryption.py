@@ -146,7 +146,7 @@ class EncryptedLogTest(unittest.TestCase):
         self.assertEqual(read_events(found, self.cipher)[0]["claim_id"], "clm-old")
 
     def test_the_ledger_reads_encrypted_verdicts(self):
-        from ai_engine.webapp.ledger import read_verdicts
+        from ai_engine.persistence.ledger import read_verdicts
 
         log = EventLog(self.dir, "txn-3", layer="validation", cipher=self.cipher)
         log.emit("ClaimValidated", claim_id="clm-9", verdict="accepted",

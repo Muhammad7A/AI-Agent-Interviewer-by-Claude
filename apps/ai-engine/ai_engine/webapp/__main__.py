@@ -34,10 +34,18 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"# Groundwork consultant workspace — {settings.posture_banner()}")
     print(f"#   data dir: {settings.data_dir}")
-    print("#   no authentication: single-consultant local tool")
+    if settings.operator_password:
+        print("#   operator authentication: enabled (HTTP Basic)")
+    else:
+        print("#   no authentication: single-consultant local tool "
+              "(set GROUNDWORK_OPERATOR_PASSWORD to require a sign-in)")
     if args.host not in ("127.0.0.1", "localhost", "::1"):
-        print(f"#   ⚠ binding to {args.host}: this app has NO authentication and holds "
-              f"employee testimony. Do not expose it to a network.")
+        if settings.operator_password:
+            print(f"#   ⚠ binding to {args.host}: this app holds employee "
+                  f"testimony. Serve over HTTPS only.")
+        else:
+            print(f"#   ⚠ binding to {args.host}: this app has NO authentication and holds "
+                  f"employee testimony. Do not expose it to a network.")
     print(f"#   → http://{args.host}:{args.port}")
 
     try:

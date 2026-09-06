@@ -209,7 +209,8 @@ def dashboard(*, interviews: list[dict], live: list[dict], posture: str, warn: b
       <button class="primary" type="submit">Start</button>
     </form>
     <form class="inline" method="post" action="/demo/run" style="margin-top:10px">
-      <button type="submit">Run the demo engagement (5 parallel interviews)</button>
+      <button type="submit">Run the demo engagement — all interviews in parallel,
+        both deliverables out</button>
     </form>
     <div class="note">The participant's name is pseudonymised immediately and never
     stored with their answers. Only this consultant workspace can re-identify, via a
@@ -432,9 +433,23 @@ def consultant_report_page(*, transcript_id: str, participant: str,
     return layout("Consultant report", body, posture=posture, warn=warn)
 
 
+def engagement_release_note(engagement_id: str, engagement_name: str) -> str:
+    """The per-transcript employer page's pointer to the engagement-level
+    release. Built here so the anchor is escaped inside the views module —
+    routes hand over data, never hand-assembled HTML."""
+    return (
+        "A single interview cannot be anonymous within itself, so this page "
+        "releases only suppressions. "
+        f'<a href="/engagements/{esc(engagement_id)}/employer">'
+        f"Open the engagement-level release for {esc(engagement_name)}</a>."
+    )
+
+
 def document(*, title: str, subtitle: str, markdown: str, back: str,
              posture: str, warn: bool, note: str = "",
              note_html: str = "") -> str:
+    if note and note_html:
+        raise ValueError("pass note (plain text) or note_html (pre-escaped), not both")
     note_html = f'<div class="note">{esc(note) if note else note_html}</div>' \
         if (note or note_html) else ""
     body = (

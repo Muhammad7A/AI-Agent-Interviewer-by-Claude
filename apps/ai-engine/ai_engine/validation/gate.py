@@ -91,6 +91,12 @@ def validate_claims(gate: ValidationGate, claims: list[Claim], decide: DecideFn)
     return findings
 
 
+#: The validator kind that marks a verdict as machine-made. One home: the
+#: surfaces that must DISCLOSE machine validation read this constant, so a
+#: rename here updates the disclosure instead of silently breaking it.
+AUTO_SIM_KIND = "auto-sim"
+
+
 class AutoValidator:
     """A DETERMINISTIC, SIMULATED reviewer for demos and tests — never a human.
 
@@ -100,7 +106,8 @@ class AutoValidator:
     amendment (demonstrating the correction path); accept the rest.
     """
 
-    VALIDATOR = Validator(id="val-auto", display_name="Auto-Sim Reviewer", kind="auto-sim")
+    VALIDATOR = Validator(id="val-auto", display_name="Auto-Sim Reviewer",
+                          kind=AUTO_SIM_KIND)
 
     def decide(self, claim: Claim) -> "tuple[Verdict, str, Correction | None]":
         if claim.tier < 2 or claim.claim_type.value == "observation":

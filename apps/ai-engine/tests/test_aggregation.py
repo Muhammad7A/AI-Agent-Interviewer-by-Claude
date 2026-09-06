@@ -95,7 +95,17 @@ class ScenarioIntegrationTest(unittest.TestCase):
                     participant_id=persona.name, participant_name=persona.name))
 
         result = aggregate(findings, HeuristicRelationChecker())
-        # The approval bottleneck is corroborated by all three.
+        # The approval bottleneck is corroborated by EVERY persona that carries
+        # an approval truth — pinned by content, not by an incidental number,
+        # so a regression that collapses the corroboration fails loudly.
+        approval = [f for f in result.corroborated
+                    if any("approval" in m.statement.lower() for m in f.members)]
+        self.assertTrue(approval, "the approval-bottleneck topic must corroborate")
+        self.assertEqual(
+            approval[0].participant_count, 6,
+            "Dana/Eli/Fern/Marcus/Priya/Wren all carry the approval truth; a "
+            "smaller count means one of them stopped disclosing or clustering")
+        # A second topic corroborates at exactly k (the weekly-report trio).
         self.assertTrue(any(f.participant_count == 3 for f in result.corroborated))
         # The process question is contested.
         self.assertGreaterEqual(len(result.contested), 1)

@@ -266,17 +266,16 @@ def create_app(settings: Settings | None = None,
                                               posture=posture, warn=warn), status_code=404)
         markdown = svc.employer_release_markdown([transcript_id])
         # k-anonymity needs a group: point the consultant at the engagement-level
-        # release, which is where the threshold can actually be met.
-        engagement_link = (
-            f'<a href="/engagements/{views.esc(transcript.engagement_id)}/employer">'
-            f"Open the engagement-level release for "
-            f"{views.esc(svc.engagement_name(transcript.engagement_id))}</a>")
+        # release, which is where the threshold can actually be met. The anchor
+        # is built in views — routes do not hand-assemble HTML.
+        note_html = views.engagement_release_note(
+            transcript.engagement_id,
+            svc.engagement_name(transcript.engagement_id))
         return HTMLResponse(views.document(
             title="Employer release", subtitle=f"{transcript_id} · through the privacy firewall",
             markdown=markdown, back=f"/transcripts/{transcript_id}/review",
             posture=posture, warn=warn,
-            note_html=("A single interview cannot be anonymous within itself, so this "
-                       "page releases only suppressions. " + engagement_link + ".")))
+            note_html=note_html))
 
     @app.post("/demo/run")
     def run_demo(request: Request):
@@ -285,13 +284,6 @@ def create_app(settings: Settings | None = None,
         result = run_demo_engagement(svc)
         return RedirectResponse(
             f"/engagements/{result.engagement_id}/deliverables", status_code=303)
-
-    def _engagement_auto_sim(engagement_id: str, transcripts: list[str]) -> bool:
-        return any(
-            "auto-sim" in (v.validator_kind or "")
-            for tid in transcripts
-            for v in svc.verdicts(tid).values()
-        )
 
     @app.get("/engagements/{engagement_id}/synthesis", response_class=HTMLResponse)
     def engagement_synthesis(request: Request, engagement_id: str) -> HTMLResponse:
@@ -303,7 +295,7 @@ def create_app(settings: Settings | None = None,
                 text="Run the demo or start interviews into it first.",
                 posture=posture, warn=warn), status_code=404)
         markdown = svc.engagement_synthesis_markdown(engagement_id)
-        auto = _engagement_auto_sim(engagement_id, transcripts)
+        auto = svc.auto_validated(transcripts)
         return HTMLResponse(views.document(
             title="Engagement synthesis",
             subtitle=f"{svc.engagement_name(engagement_id)} · "
@@ -324,18 +316,20 @@ def create_app(settings: Settings | None = None,
         needs a group, and only an engagement can provide one.
         """
         posture, warn = svc.posture()
-        transcripts = svc.transcripts_for_engagement(engagement_id)
-        if not transcripts:
+        try:
+            markdown = svc.employer_release_markdown(engagement_id=engagement_id)
+        except ValueError:
+            # The service contract refuses scopes that resolve to nothing; the
+            # route turns that into the honest 404.
             return HTMLResponse(views.message(
                 title="No interviews in this engagement",
                 text="Run the demo or start interviews into it first.",
                 posture=posture, warn=warn), status_code=404)
-        markdown = svc.employer_release_markdown(engagement_id=engagement_id)
         return HTMLResponse(views.document(
             title="Employer release",
             subtitle=f"{svc.engagement_name(engagement_id)} · "
-                     f"{len(transcripts)} interviews · aggregated, "
-                     f"k-anonymity {employer_k}",
+                     f"{len(svc.transcripts_for_engagement(engagement_id))} "
+                     f"interviews · aggregated, k-anonymity {employer_k}",
             markdown=markdown, back="/", posture=posture, warn=warn,
             note="This is what the employer receives: group-level findings only, no "
                  "names, no verbatim quotes, and disagreements reported without "
@@ -361,7 +355,7 @@ def create_app(settings: Settings | None = None,
                 posture=posture, warn=warn), status_code=404)
         synthesis = svc.engagement_synthesis_markdown(engagement_id)
         employer = svc.employer_release_markdown(engagement_id=engagement_id)
-        auto = _engagement_auto_sim(engagement_id, transcripts)
+        auto = svc.auto_validated(transcripts)
         return HTMLResponse(views.deliverables(
             engagement_name=svc.engagement_name(engagement_id),
             interview_count=len(transcripts), k_anonymity=employer_k,

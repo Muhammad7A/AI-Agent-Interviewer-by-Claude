@@ -250,6 +250,20 @@ class ConsultantService:
             pass  # already stored; write-once wins, the review page is next
         return transcript.id
 
+    def auto_validated(self, transcript_ids: list[str]) -> bool:
+        """Whether any verdict across these interviews was recorded by a machine.
+
+        The surfaces must disclose machine validation (the demo pages say so
+        next to the deliverables), and the kind string lives in one place —
+        validation.gate.AUTO_SIM_KIND — so a rename there cannot silently turn
+        auto-validated work into something that presents as human-validated.
+        """
+        from ..validation.gate import AUTO_SIM_KIND
+
+        return any(AUTO_SIM_KIND in (v.validator_kind or "")
+                   for tid in transcript_ids
+                   for v in self.verdicts(tid).values())
+
     def live_summary(self) -> list[dict]:
         return [{"id": tid, "turns": item.driver.state.turn_count,
                  "status": "closed" if item.driver.closed else "awaiting answer"}

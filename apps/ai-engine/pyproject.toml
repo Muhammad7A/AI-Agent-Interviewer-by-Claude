@@ -32,6 +32,8 @@ groundwork-interview-surface = "ai_engine.employee.__main__:main"
 [tool.setuptools]
 packages = [
   "ai_engine",
+  "ai_engine.application",
+  "ai_engine.lab",
   "ai_engine.llm",
   "ai_engine.interview",
   "ai_engine.transcript",

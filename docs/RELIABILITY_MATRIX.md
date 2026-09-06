@@ -402,6 +402,7 @@ Parse paths: `interview/turn.py:parse_turn` (interviewer turn), `evidence/tagger
 | API-050 | key revoked mid-interview | 401 permanent at next call → stalled/wedge | employee stalled (retry never succeeds) → stuck at 503 forever | P2 | give up after N stalls → graceful close + partial saved | code |
 
 ---
+| CONV-118 | Second refusal AFTER a process restart (strategy memory is process-local) | never de-escalate twice, even across restarts | resume builds a fresh strategy, so `_last_intent` is lost and the engine de-escalates again — cosmetically suboptimal, no data harm (verified: lab scenario golden-never-twice) | P3 | persist strategy hints in the draft schema (v2) | lab: golden-never-twice (kind=edge, known-gap) |
 
 ### Verification (Phase 7)
 - Full suite: **407 tests OK** (12 reliability regressions NEW) · eval gate 6/6 PASS · fuzz audit 0 violations — run after every fix batch (three green runs this investigation).

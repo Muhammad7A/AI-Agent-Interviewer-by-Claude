@@ -74,6 +74,13 @@ jobs:
       - name: Run evaluation gate
         run: python -m ai_engine.eval
 
+      # The evaluation lab: curated golden scenarios scored by rubric, compared
+      # against the committed baseline. Score drops, criterion flips, appearing
+      # variance, and new failures fail the build. Latency is reported, never
+      # failed. (Mock mode: deterministic, no network, no keys.)
+      - name: Evaluation lab — golden regression
+        run: python -m ai_engine.lab --baseline baselines/golden-baseline.json --check
+
       # Property-based audit of the two gates the product's credibility rests on:
       # grounding (is the quote real?) and entailment (does it support the claim?).
       # Exits non-zero on any false accept, false reject, integrity or crash finding.

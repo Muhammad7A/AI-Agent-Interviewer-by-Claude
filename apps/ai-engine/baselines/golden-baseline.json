@@ -1,0 +1,741 @@
+{
+  "schema": "groundwork.lab/v1",
+  "evaluations": [
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-open-intent",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Thanks for making the time — nothing you say gets back to your employer with your name on it. To start, can you walk me through how your work actually gets done day to day?",
+      "results": [
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'open' (expected 'open'); rationale: recorded by the production loop"
+        },
+        {
+          "rubric_id": "relevance/area",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "utterance is a known bank question for 'process_reality' (expected 'process_reality')"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        },
+        {
+          "rubric_id": "communication/naturalness",
+          "dimension": "communication",
+          "grader_class": "model",
+          "score": null,
+          "status": "unscored",
+          "evidence": "model-based grading requires a live provider; the lab never invents this score"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.27,
+      "output_sha": "26ad6f63829ebb34",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-open-intent",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Thanks for making the time — nothing you say gets back to your employer with your name on it. To start, can you walk me through how your work actually gets done day to day?",
+      "results": [
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'open' (expected 'open'); rationale: recorded by the production loop"
+        },
+        {
+          "rubric_id": "relevance/area",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "utterance is a known bank question for 'process_reality' (expected 'process_reality')"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        },
+        {
+          "rubric_id": "communication/naturalness",
+          "dimension": "communication",
+          "grader_class": "model",
+          "score": null,
+          "status": "unscored",
+          "evidence": "model-based grading requires a live provider; the lab never invents this score"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.13,
+      "output_sha": "26ad6f63829ebb34",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-guarded-deferral",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "That's completely fine, we can leave that there. Let's step back: what does an ordinary day look like for you?",
+      "results": [
+        {
+          "rubric_id": "relevance/utterance",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "contains 'leave that there': ok; omits 'decision someone made': ok"
+        },
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'de_escalate' (expected 'de_escalate'); rationale: recorded by the production loop"
+        },
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "pending_area == 'wasted_effort': ok"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.24,
+      "output_sha": "651f445131a74652",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-guarded-deferral",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "That's completely fine, we can leave that there. Let's step back: what does an ordinary day look like for you?",
+      "results": [
+        {
+          "rubric_id": "relevance/utterance",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "contains 'leave that there': ok; omits 'decision someone made': ok"
+        },
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'de_escalate' (expected 'de_escalate'); rationale: recorded by the production loop"
+        },
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "pending_area == 'wasted_effort': ok"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.19,
+      "output_sha": "651f445131a74652",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-vague-conversion",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "When did you last do something instead of the official way — what was the workaround, exactly?",
+      "results": [
+        {
+          "rubric_id": "relevance/utterance",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "contains 'instead of the official way': ok; omits 'most often stall or pile up': ok"
+        },
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'specificity_conversion' (expected 'specificity_conversion'); rationale: recorded by the production loop"
+        },
+        {
+          "rubric_id": "relevance/area",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "utterance is a known bank question for 'workarounds' (expected 'workarounds')"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.17,
+      "output_sha": "11d393aabb70e3b7",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-vague-conversion",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "When did you last do something instead of the official way — what was the workaround, exactly?",
+      "results": [
+        {
+          "rubric_id": "relevance/utterance",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "contains 'instead of the official way': ok; omits 'most often stall or pile up': ok"
+        },
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'specificity_conversion' (expected 'specificity_conversion'); rationale: recorded by the production loop"
+        },
+        {
+          "rubric_id": "relevance/area",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "utterance is a known bank question for 'workarounds' (expected 'workarounds')"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.17,
+      "output_sha": "11d393aabb70e3b7",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-contradiction-surfacing",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Earlier you mentioned \"Everything waits on the director's approval — that approval bottleneck stalls the work.\" — how does that sit alongside what you just said? I'm not catching you out, I just want to get it right.",
+      "results": [
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'contradiction' (expected 'contradiction'); rationale: recorded by the production loop"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 12.4,
+      "output_sha": "d53b18514fb4e22f",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-contradiction-surfacing",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Earlier you mentioned \"Everything waits on the director's approval — that approval bottleneck stalls the work.\" — how does that sit alongside what you just said? I'm not catching you out, I just want to get it right.",
+      "results": [
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'contradiction' (expected 'contradiction'); rationale: recorded by the production loop"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.76,
+      "output_sha": "d53b18514fb4e22f",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-approval-tier-credit",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "tier_credited == 3: ok; pending_area == 'friction': ok"
+        },
+        {
+          "rubric_id": "relevance/area",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "utterance is a known bank question for 'friction' (expected 'friction')"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.57,
+      "output_sha": "7c732614708ac9ab",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-approval-tier-credit",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "tier_credited == 3: ok; pending_area == 'friction': ok"
+        },
+        {
+          "rubric_id": "relevance/area",
+          "dimension": "relevance",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "utterance is a known bank question for 'friction' (expected 'friction')"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.56,
+      "output_sha": "7c732614708ac9ab",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-resume-equivalence",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "area 'workarounds' touched: ok"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.39,
+      "output_sha": "7c732614708ac9ab",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-resume-equivalence",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "area 'workarounds' touched: ok"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.4,
+      "output_sha": "7c732614708ac9ab",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-gate-quantity-inflation",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "rejected",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "gate verdict 'rejected' (expected 'rejected'): entailment: not_supported (claim asserts the quantity 'eleven day', which is not in the quote)"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.94,
+      "output_sha": "229bb4c45e10d72b",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-gate-curly-grounding",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "supported",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "gate verdict 'supported' (expected 'supported'): entailment: supported (claim stays within the quote)"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.37,
+      "output_sha": "9147001d8809a38a",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-employer-firewall",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "# Organizational Findings — Lab engagement\n\n- **Audience:** employer\n- **Interviews:** 3\n- **Topics released:** 1 · **some topics withheld**\n\n> Employer view — aggregated findings only. Each topic is reported at the group level and requires at least 3 independent participants. No individual response, verbatim quote, or attribution is released, and the sides of a disagreement are never identified.\n\n> **What you are not seeing, and why.** Individual responses are confidential to the interviewing consultant. Names are never released. Verbatim quotes are withheld for sensitive topics because the wording itself can identify who spoke. Where participants disagreed, the disagreement is reported but the positions are not. These limits are what make candid answers possible in the first place.\n\n## Findings\n\n### friction: approval, bottleneck, director, decision, everything\n_friction · 3 participants · confidence 0.89_\n\n- 3 participants raised this. Individual responses are withheld.\n  - _withheld: individual responses, attribution, verbatim quotes, per-participant confidence_\n\n## Withheld to protect confidentiality\n\nSome topics were not released. Neither their content nor how many there are is disclosed; each entry below is one reason a topic class was withheld, not a count of findings.\n\n- **below k-anonymity threshold** — fewer than 3 participants discussed this, so no group-level view can prevent identification\n",
+      "results": [
+        {
+          "rubric_id": "feedback_quality/provenance",
+          "dimension": "feedback_quality",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "unvalidated statement absent: 'VIP customers get bumped up the queue wh': ok; unvalidated statement absent: 'I sometimes skip the end-of-day reconcil': ok; unvalidated statement absent: \"The director's approval is the bottlenec\": ok; evidence lines >= 0: ok; firewall framing present: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 150.35,
+      "output_sha": "77e15ac38f0ec49b",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-report-provenance",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "# Organizational Assessment — Findings\n\n- **Engagement:** eng-lab\n- **Interview:** txn-427e8a5a4ee5\n- **Generated:** 2026-09-06\n- **Validated by:** Consultant\n- **Objective:** lab scenario\n\n> ✅ **Grounded by construction.** 1 of 1 proposed claims carried a quote that exists verbatim in the transcript and supports the claim; 0 were rejected as unsourced and 0 as unsupported by their quote. Confabulation rate 0%. Rejected claims are dropped, not softened.\n\n> Every finding below was proposed by AI from interview testimony and **validated by a human reviewer**. Each carries a verbatim quote that resolves to the source transcript. Unvalidated and rejected proposals are excluded.\n\n## Managerial & Process Friction\n\n### [friction] The director's approval is the bottleneck — that slow decision holds everything up.\n_Tier 3 · validated_\n\n> \"The director's approval is the bottleneck — that slow decision holds everything up.\"  \n> — evidence `seg-e80b1f08c788` [0:83] (exact) · [open the exact moment](/transcripts/txn-427e8a5a4ee5#seg-seg-e80b1f08c788)\n\n## Summary\n\n- Validated findings: **1** (1 accepted, 0 amended)\n- Proposals rejected in validation: 0\n",
+      "results": [
+        {
+          "rubric_id": "feedback_quality/provenance",
+          "dimension": "feedback_quality",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "evidence lines >= 1: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 53.6,
+      "output_sha": "200238ad1daa000a",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-full-coverage",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "",
+      "results": [
+        {
+          "rubric_id": "interview_quality/coverage",
+          "dimension": "interview_quality",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "areas covered 2 (min 2); tier-2+ disclosures 2 (min 2)"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 5.86,
+      "output_sha": "e3b0c44298fc1c14",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-consistency-repeats",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "When did you last do something instead of the official way — what was the workaround, exactly?",
+      "results": [
+        {
+          "rubric_id": "consistency/repeat",
+          "dimension": "consistency",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "2 repeats produced identical output"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.35,
+      "output_sha": "11d393aabb70e3b7",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-consistency-repeats",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "When did you last do something instead of the official way — what was the workaround, exactly?",
+      "results": [
+        {
+          "rubric_id": "consistency/repeat",
+          "dimension": "consistency",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "2 repeats produced identical output"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.31,
+      "output_sha": "11d393aabb70e3b7",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-gate-fabricated-quote",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "rejected",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "gate verdict 'rejected' (expected 'rejected'): entailment: not_supported (claim and quote disagree in polarity (one negates, the other does not))"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.83,
+      "output_sha": "b5d2711e7993c9f1",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-vague-strikeout",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
+      "results": [
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'ladder' (forbidden 'specificity_conversion' not used); rationale: recorded by the production loop"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.48,
+      "output_sha": "7c732614708ac9ab",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-vague-strikeout",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
+      "results": [
+        {
+          "rubric_id": "reasoning/intent",
+          "dimension": "reasoning",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "strategy intent 'ladder' (forbidden 'specificity_conversion' not used); rationale: recorded by the production loop"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.47,
+      "output_sha": "7c732614708ac9ab",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-close-budget",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "driver closed: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.08,
+      "output_sha": "e3b0c44298fc1c14",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-close-budget",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "driver closed: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.07,
+      "output_sha": "e3b0c44298fc1c14",
+      "error": null
+    }
+  ]
+}

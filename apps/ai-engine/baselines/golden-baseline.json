@@ -43,7 +43,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.27,
+      "latency_ms": 0.22,
       "output_sha": "26ad6f63829ebb34",
       "error": null
     },
@@ -89,7 +89,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.13,
+      "latency_ms": 0.39,
       "output_sha": "26ad6f63829ebb34",
       "error": null
     },
@@ -135,7 +135,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.24,
+      "latency_ms": 0.45,
       "output_sha": "651f445131a74652",
       "error": null
     },
@@ -181,7 +181,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.19,
+      "latency_ms": 0.31,
       "output_sha": "651f445131a74652",
       "error": null
     },
@@ -227,7 +227,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.17,
+      "latency_ms": 0.37,
       "output_sha": "11d393aabb70e3b7",
       "error": null
     },
@@ -273,7 +273,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.17,
+      "latency_ms": 0.29,
       "output_sha": "11d393aabb70e3b7",
       "error": null
     },
@@ -303,7 +303,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 12.4,
+      "latency_ms": 13.58,
       "output_sha": "d53b18514fb4e22f",
       "error": null
     },
@@ -333,7 +333,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.76,
+      "latency_ms": 0.64,
       "output_sha": "d53b18514fb4e22f",
       "error": null
     },
@@ -371,7 +371,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.57,
+      "latency_ms": 0.53,
       "output_sha": "7c732614708ac9ab",
       "error": null
     },
@@ -409,67 +409,67 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.56,
-      "output_sha": "7c732614708ac9ab",
-      "error": null
-    },
-    {
-      "schema": "groundwork.lab/v1",
-      "scenario_id": "golden-resume-equivalence",
-      "suite_id": "",
-      "rubric_version": "lab.rubric/v1",
-      "mode": "mock",
-      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
-      "results": [
-        {
-          "rubric_id": "correctness/state",
-          "dimension": "correctness",
-          "grader_class": "deterministic",
-          "score": 1.0,
-          "status": "pass",
-          "evidence": "area 'workarounds' touched: ok"
-        },
-        {
-          "rubric_id": "communication/hygiene",
-          "dimension": "communication",
-          "grader_class": "heuristic",
-          "score": 1.0,
-          "status": "pass",
-          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
-        }
-      ],
-      "total_score": 1.0,
-      "latency_ms": 0.39,
-      "output_sha": "7c732614708ac9ab",
-      "error": null
-    },
-    {
-      "schema": "groundwork.lab/v1",
-      "scenario_id": "golden-resume-equivalence",
-      "suite_id": "",
-      "rubric_version": "lab.rubric/v1",
-      "mode": "mock",
-      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
-      "results": [
-        {
-          "rubric_id": "correctness/state",
-          "dimension": "correctness",
-          "grader_class": "deterministic",
-          "score": 1.0,
-          "status": "pass",
-          "evidence": "area 'workarounds' touched: ok"
-        },
-        {
-          "rubric_id": "communication/hygiene",
-          "dimension": "communication",
-          "grader_class": "heuristic",
-          "score": 1.0,
-          "status": "pass",
-          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
-        }
-      ],
-      "total_score": 1.0,
       "latency_ms": 0.4,
+      "output_sha": "7c732614708ac9ab",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-resume-equivalence",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "area 'workarounds' touched: ok"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.3,
+      "output_sha": "7c732614708ac9ab",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-resume-equivalence",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "Was that more about the tools, the process, or a decision someone made? There's no wrong answer — I'm just mapping where the friction sits.",
+      "results": [
+        {
+          "rubric_id": "correctness/state",
+          "dimension": "correctness",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "area 'workarounds' touched: ok"
+        },
+        {
+          "rubric_id": "communication/hygiene",
+          "dimension": "communication",
+          "grader_class": "heuristic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "non-empty: ok; length 10..2000: ok; no leaked internals: ok; not a verbatim/near echo of the candidate answer: ok"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.38,
       "output_sha": "7c732614708ac9ab",
       "error": null
     },
@@ -491,7 +491,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.94,
+      "latency_ms": 1.0,
       "output_sha": "229bb4c45e10d72b",
       "error": null
     },
@@ -513,7 +513,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.37,
+      "latency_ms": 0.53,
       "output_sha": "9147001d8809a38a",
       "error": null
     },
@@ -535,7 +535,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 150.35,
+      "latency_ms": 239.98,
       "output_sha": "77e15ac38f0ec49b",
       "error": null
     },
@@ -545,7 +545,7 @@
       "suite_id": "",
       "rubric_version": "lab.rubric/v1",
       "mode": "mock",
-      "produced_utterance": "# Organizational Assessment — Findings\n\n- **Engagement:** eng-lab\n- **Interview:** txn-427e8a5a4ee5\n- **Generated:** 2026-09-06\n- **Validated by:** Consultant\n- **Objective:** lab scenario\n\n> ✅ **Grounded by construction.** 1 of 1 proposed claims carried a quote that exists verbatim in the transcript and supports the claim; 0 were rejected as unsourced and 0 as unsupported by their quote. Confabulation rate 0%. Rejected claims are dropped, not softened.\n\n> Every finding below was proposed by AI from interview testimony and **validated by a human reviewer**. Each carries a verbatim quote that resolves to the source transcript. Unvalidated and rejected proposals are excluded.\n\n## Managerial & Process Friction\n\n### [friction] The director's approval is the bottleneck — that slow decision holds everything up.\n_Tier 3 · validated_\n\n> \"The director's approval is the bottleneck — that slow decision holds everything up.\"  \n> — evidence `seg-e80b1f08c788` [0:83] (exact) · [open the exact moment](/transcripts/txn-427e8a5a4ee5#seg-seg-e80b1f08c788)\n\n## Summary\n\n- Validated findings: **1** (1 accepted, 0 amended)\n- Proposals rejected in validation: 0\n",
+      "produced_utterance": "# Organizational Assessment — Findings\n\n- **Engagement:** eng-lab\n- **Interview:** txn-0f326f6b924d\n- **Generated:** 2026-09-07\n- **Validated by:** Consultant\n- **Objective:** lab scenario\n\n> ✅ **Grounded by construction.** 1 of 1 proposed claims carried a quote that exists verbatim in the transcript and supports the claim; 0 were rejected as unsourced and 0 as unsupported by their quote. Confabulation rate 0%. Rejected claims are dropped, not softened.\n\n> Every finding below was proposed by AI from interview testimony and **validated by a human reviewer**. Each carries a verbatim quote that resolves to the source transcript. Unvalidated and rejected proposals are excluded.\n\n## Managerial & Process Friction\n\n### [friction] The director's approval is the bottleneck — that slow decision holds everything up.\n_Tier 3 · validated_\n\n> \"The director's approval is the bottleneck — that slow decision holds everything up.\"  \n> — evidence `seg-9f15dcdcdbae` [0:83] (exact) · [open the exact moment](/transcripts/txn-0f326f6b924d#seg-seg-9f15dcdcdbae)\n\n## Summary\n\n- Validated findings: **1** (1 accepted, 0 amended)\n- Proposals rejected in validation: 0\n",
       "results": [
         {
           "rubric_id": "feedback_quality/provenance",
@@ -557,8 +557,8 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 53.6,
-      "output_sha": "200238ad1daa000a",
+      "latency_ms": 117.25,
+      "output_sha": "1308898d23fe2658",
       "error": null
     },
     {
@@ -579,30 +579,8 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 5.86,
+      "latency_ms": 12.73,
       "output_sha": "e3b0c44298fc1c14",
-      "error": null
-    },
-    {
-      "schema": "groundwork.lab/v1",
-      "scenario_id": "golden-consistency-repeats",
-      "suite_id": "",
-      "rubric_version": "lab.rubric/v1",
-      "mode": "mock",
-      "produced_utterance": "When did you last do something instead of the official way — what was the workaround, exactly?",
-      "results": [
-        {
-          "rubric_id": "consistency/repeat",
-          "dimension": "consistency",
-          "grader_class": "deterministic",
-          "score": 1.0,
-          "status": "pass",
-          "evidence": "2 repeats produced identical output"
-        }
-      ],
-      "total_score": 1.0,
-      "latency_ms": 0.35,
-      "output_sha": "11d393aabb70e3b7",
       "error": null
     },
     {
@@ -629,6 +607,28 @@
     },
     {
       "schema": "groundwork.lab/v1",
+      "scenario_id": "golden-consistency-repeats",
+      "suite_id": "",
+      "rubric_version": "lab.rubric/v1",
+      "mode": "mock",
+      "produced_utterance": "When did you last do something instead of the official way — what was the workaround, exactly?",
+      "results": [
+        {
+          "rubric_id": "consistency/repeat",
+          "dimension": "consistency",
+          "grader_class": "deterministic",
+          "score": 1.0,
+          "status": "pass",
+          "evidence": "2 repeats produced identical output"
+        }
+      ],
+      "total_score": 1.0,
+      "latency_ms": 0.32,
+      "output_sha": "11d393aabb70e3b7",
+      "error": null
+    },
+    {
+      "schema": "groundwork.lab/v1",
       "scenario_id": "golden-gate-fabricated-quote",
       "suite_id": "",
       "rubric_version": "lab.rubric/v1",
@@ -645,7 +645,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.83,
+      "latency_ms": 0.51,
       "output_sha": "b5d2711e7993c9f1",
       "error": null
     },
@@ -667,7 +667,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.48,
+      "latency_ms": 0.34,
       "output_sha": "7c732614708ac9ab",
       "error": null
     },
@@ -689,7 +689,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.47,
+      "latency_ms": 0.38,
       "output_sha": "7c732614708ac9ab",
       "error": null
     },
@@ -711,7 +711,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.08,
+      "latency_ms": 0.09,
       "output_sha": "e3b0c44298fc1c14",
       "error": null
     },
@@ -733,7 +733,7 @@
         }
       ],
       "total_score": 1.0,
-      "latency_ms": 0.07,
+      "latency_ms": 0.1,
       "output_sha": "e3b0c44298fc1c14",
       "error": null
     }

@@ -40,11 +40,15 @@ class InterviewDriver:
         objective: str,
         event_log: EventLog | None = None,
         max_turns: int = 14,
+        areas: tuple | None = None,
     ) -> None:
         self._engine = engine
         self._transcript = transcript
         self._log = event_log or NullEventLog()
-        self._state = InterviewState(objective=objective)
+        # Universe seam S3: coverage keys follow the strategy's injected areas
+        # when it has any; None keeps the six discovery areas.
+        strategy_areas = getattr(getattr(engine, "_strategy", None), "_areas", None)
+        self._state = InterviewState(objective=objective, areas=strategy_areas)
         self._history: list[Message] = []
         self._max_turns = max_turns
         self._last_answer: str | None = None
@@ -95,7 +99,12 @@ class InterviewDriver:
                     and event.get("segment_id") and event.get("target_area")):
                 tier = event.get("tier_credited") or event.get("tier_targeted") or 1
                 asked[event["segment_id"]] = (event["target_area"], int(tier))
-        bank = question_area_index()
+        # Replay against THIS engine's tables: a composed scenario injects its
+        # own bank/opening/probes (universe seam S1), and resume must attribute
+        # against the same words the live loop phrases from.
+        bank = (driver._engine.question_index()
+                if hasattr(driver._engine, "question_index")
+                else question_area_index())
 
         pending_q: str | None = None
         replayed_turns = 0

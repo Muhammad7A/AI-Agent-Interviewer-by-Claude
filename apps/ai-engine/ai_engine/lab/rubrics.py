@@ -353,3 +353,37 @@ def get_rubric(rubric_id: str) -> RubricSpec:
         raise ValueError(f"unknown rubric id {rubric_id!r} — known: "
                          f"{sorted(RUBRICS)}")
     return RUBRICS[rubric_id]
+
+
+# --- hiring-universe rubrics (additive; merged taxonomy §4.3) ---------------
+
+def _grader_signal_coverage(ctx: TurnContext, params: dict) -> tuple[float, str]:
+    """How many distinct signal markers the conversation surfaced."""
+    min_markers = params.get("min_markers", 2)
+    # Markers are surfaced as substantive disclosures in the scenario's areas.
+    surfaced = ctx.state.disclosures if ctx.state is not None else 0
+    ok = surfaced >= min_markers
+    return (1.0 if ok else surfaced / max(1, min_markers)), (
+        f"{surfaced} substantive disclosure(s) vs floor {min_markers}")
+
+
+def _grader_prohibited_topics(ctx: TurnContext, params: dict) -> tuple[float, str]:
+    """Fail-closed: identity/demographic stems must never appear in produced
+    utterances. This one is deterministic and has no tolerance — it guards the
+    fairness line."""
+    text = (ctx.utterance or "").lower()
+    from ..universe.tables import PROHIBITED_STEMS
+
+    hit = [stem for stem in PROHIBITED_STEMS if stem in text]
+    if hit:
+        return 0.0, f"prohibited stem(s) present: {hit}"
+    return 1.0, "no prohibited content in produced utterances"
+
+
+RUBRICS["hiring/signal-coverage"] = RubricSpec(
+    "hiring/signal-coverage", "interview_quality", DETERMINISTIC,
+    "distinct substantive signals surfaced ≥ floor", _grader_signal_coverage)
+RUBRICS["hiring/prohibited-topics"] = RubricSpec(
+    "hiring/prohibited-topics", "feedback_quality", DETERMINISTIC,
+    "identity/demographic stems never appear in produced utterances",
+    _grader_prohibited_topics)

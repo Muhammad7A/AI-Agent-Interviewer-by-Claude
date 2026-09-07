@@ -95,7 +95,8 @@ _BANK_REVERSE: dict[str, tuple[str, int]] = {
 }
 
 
-def question_area_index() -> dict[str, tuple[str, int | None]]:
+def question_area_index(bank: dict | None = None, opening: str | None = None,
+                        probes: dict | None = None) -> dict[str, tuple[str, int | None]]:
     """Which (area, tier) each known offline question text aims at.
 
     Used by ``InterviewDriver.resume`` to restore what each replayed question was
@@ -103,21 +104,32 @@ def question_area_index() -> dict[str, tuple[str, int | None]]:
     current tier (``None`` = keep whatever was pending), and the de-escalation
     text is deliberately absent — the safe area it drops to is chosen from state,
     so text alone cannot recover it and replay keeps the previous topic.
+
+    Defaults to the module's own tables; a composed scenario injects its
+    rendered bank/opening/probes (universe seam S1) so resume attribution and
+    the lab's relevance grader read the SAME tables the engine phrases from.
     """
-    index: dict[str, tuple[str, int | None]] = {_OPENING: ("process_reality", 1)}
-    index.update(_BANK_REVERSE)
-    for area, text in _SPECIFICITY_BY_AREA.items():
+    bank = _BANK if bank is None else bank
+    opening = _OPENING if opening is None else opening
+    probes = _SPECIFICITY_BY_AREA if probes is None else probes
+    index: dict[str, tuple[str, int | None]] = {opening: ("process_reality", 1)}
+    index.update({text: (area, tier) for (area, tier), text in bank.items()})
+    for area, text in probes.items():
         index[text] = (area, None)
     return index
 
 
-def _phrase(move: Move, state: InterviewState) -> str:
+def _phrase(move: Move, state: InterviewState, bank: dict | None = None,
+            opening: str | None = None, probes: dict | None = None) -> str:
+    bank = _BANK if bank is None else bank
+    opening = _OPENING if opening is None else opening
+    probes = _SPECIFICITY_BY_AREA if probes is None else probes
     if move.intent is Intent.OPEN:
-        return _OPENING
+        return opening
     if move.intent is Intent.CLOSE:
         return _CLOSING
     if move.intent is Intent.CONVERT_SPECIFICITY:
-        return _SPECIFICITY_BY_AREA.get(move.target_area, _SPECIFICITY_FALLBACK)
+        return probes.get(move.target_area, _SPECIFICITY_FALLBACK)
     if move.intent is Intent.DE_ESCALATE:
         return _DE_ESCALATE
     if move.intent is Intent.SURFACE_CONTRADICTION:
@@ -126,10 +138,10 @@ def _phrase(move: Move, state: InterviewState) -> str:
                 f"you just said? I'm not catching you out, I just want to get it right.")
     # LADDER: the bank entry for this area at this tier, or the nearest lower tier.
     for tier in range(move.target_tier, 0, -1):
-        text = _BANK.get((move.target_area, tier))
+        text = bank.get((move.target_area, tier))
         if text:
             return text
-    for (area, _tier), text in _BANK.items():
+    for (area, _tier), text in bank.items():
         if area == move.target_area:
             return text
     return _CLOSING
@@ -200,11 +212,25 @@ class InterviewEngine:
         max_turns: int = 14,
         temperature: float = 0.4,
         strategy: InterviewStrategy | None = None,
+        bank: dict | None = None,
+        opening: str | None = None,
+        probes: dict | None = None,
     ) -> None:
         self._llm = llm
         self._max_turns = max_turns
         self._temperature = temperature
         self._strategy = strategy or InterviewStrategy(max_turns=max_turns)
+        # Universe seam S1: a composed scenario injects its own question bank,
+        # opening, and specificity probes; None keeps the module defaults, so
+        # every existing caller and all 17 golden scenarios are unchanged.
+        self._bank = dict(bank) if bank else _BANK
+        self._opening = opening or _OPENING
+        self._probes = dict(probes) if probes else _SPECIFICITY_BY_AREA
+
+    def question_index(self) -> dict[str, tuple[str, int | None]]:
+        """The (text → area, tier) index for THIS engine's tables — what
+        ``InterviewDriver.resume`` replays against."""
+        return question_area_index(self._bank, self._opening, self._probes)
 
     @property
     def is_live(self) -> bool:
@@ -249,7 +275,8 @@ class InterviewEngine:
             turn = self._live_turn(state=state, history=history,
                                    last_answer=last_answer, move=move)
         else:
-            utterance = _phrase(move, state)
+            utterance = _phrase(move, state, self._bank, self._opening,
+                                self._probes)
             if move.intent is Intent.LADDER:
                 # Credit the tier the phrased words actually came from, not the
                 # move's target — see _BANK_REVERSE.
@@ -270,8 +297,7 @@ class InterviewEngine:
             )
 
         if not turn.should_close:
-            state.note_question(*noted)
-        # The assessment has already been folded; do not hand it back for re-folding.
+            state.note_question(*noted)        # The assessment has already been folded; do not hand it back for re-folding.
         turn.assessment = None
         return turn
 

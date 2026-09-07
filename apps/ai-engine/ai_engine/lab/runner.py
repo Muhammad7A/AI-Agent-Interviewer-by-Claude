@@ -413,8 +413,9 @@ def run_report_case(scenario: Scenario, settings: Settings) -> list[TurnEvaluati
     latency_ms = (time.perf_counter() - started) * 1000
     evaluation = _evaluate(scenario, settings, md, _CapturingLog(), latency_ms,
                            None, report_md=md)
-    # Reports embed volatile identifiers; hash the stable content so the
-    # regression compare detects rewordings, not new random ids.
+    # Reports embed volatile identifiers (fresh workspace = fresh txn/seg/clm
+    # ids and a new date); hash the STABLE content so the regression compare
+    # detects real rewordings, not new random ids.
     evaluation.output_sha = _stable_output_sha(md)
     return [evaluation]
 

@@ -83,6 +83,13 @@ class InterviewState:
     #: The area the last question aimed at, so its answer can be attributed.
     pending_area: str | None = None
     pending_tier: int = 0
+    #: Universe seam S3: composed scenarios key coverage by THEIR competency
+    #: areas; None keeps the six discovery areas (default-preserving).
+    areas: tuple | None = None
+
+    def __post_init__(self) -> None:
+        if self.areas:
+            self.coverage = {a: AreaCoverage() for a in self.areas}
 
     def record_answer(
         self,

@@ -346,8 +346,7 @@ def _stable_output_sha(text: str) -> str:
     stable = _re.sub(r"txn-[0-9a-f]+", "txn", text)
     stable = _re.sub(r"seg-[0-9a-f]+", "seg", stable)
     stable = _re.sub(r"clm-[0-9a-f]+", "clm", stable)
-    stable = _re.sub(r"Generated: .*?\d{4}-\d{2}-\d{2}", "Generated: <date>",
-                     stable)
+    stable = _re.sub(r"\d{4}-\d{2}-\d{2}", "<date>", stable)
     stable = _re.sub(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}", "<ts>", stable)
     return hashlib.sha256(stable.encode("utf-8")).hexdigest()[:16]
 

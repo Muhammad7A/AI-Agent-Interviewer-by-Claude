@@ -242,11 +242,18 @@ def preflight_model(settings: Settings | None = None) -> str:
                         max_tokens=8, temperature=0.0)
     except Exception as exc:
         raise ModelUnavailable(
-            f"the configured model {settings.model!r} did not answer a trivial "
-            f"request ({type(exc).__name__}: {exc}). Check GROUNDWORK_MODEL names a "
-            f"current model and that ANTHROPIC_API_KEY is valid."
+            f"the configured model did not answer a trivial request "
+            f"({type(exc).__name__}: {exc}). Check that the model id names a "
+            f"current model (GROUNDWORK_MODEL for Anthropic, "
+            f"GROUNDWORK_GEMINI_MODEL for Gemini) and that the credentials "
+            f"are valid."
         ) from exc
-    return settings.model
+    # Name the model that ACTUALLY answered (the gemini adapter proves its
+    # own model id; returning the anthropic-side default here mislabeled a
+    # live Gemini deployment as 'claude-sonnet-5').
+    used = (settings.gemini_model if settings.provider == "gemini"
+            else settings.model)
+    return used
 
 
 def _build_provider_client(settings: Settings, policy=None):
